@@ -4,15 +4,15 @@
     {
       "name": "STlink",
       "cwd": "${workspaceRoot}",
-      "executable": "${workspaceRoot}\\build\\26_Code.elf",
+      "executable": "${workspaceRoot}/build/26_Code.elf",
       "request": "launch",
       "type": "cortex-debug",
-      "device": "${workspaceRoot}\\debug\\STM32H723VGTx",
-      "svdFile": "${workspaceRoot}\\debug\\STM32H723.svd",
+      "device": "${workspaceRoot}/debug/STM32H723VGTx",
+      "svdFile": "${workspaceRoot}/debug/STM32H723.svd",
       "servertype": "openocd",
       "configFiles": [
-        "${workspaceRoot}\\debug\\stlink.cfg",
-        "${workspaceRoot}\\debug\\stm32h7x.cfg"
+        "${workspaceRoot}/debug/stlink.cfg",
+        "${workspaceRoot}/debug/stm32h7x.cfg"
       ],
       "liveWatch": {
         "enabled": true,
@@ -25,14 +25,14 @@
     {
       "name": "DAPlink",
       "cwd": "${workspaceRoot}",
-      "executable": "${workspaceRoot}\\build\\26_Code.elf",
+      "executable": "${workspaceRoot}/build/26_Code.elf",
       "request": "launch",
       "type": "cortex-debug",
-      "device": "${workspaceRoot}\\debug\\STM32H723VGTx",
-      "svdFile": "${workspaceRoot}\\debug\\STM32H723.svd",
+      "device": "${workspaceRoot}/debug/STM32H723VGTx",
+      "svdFile": "${workspaceRoot}/debug/STM32H723.svd",
       "servertype": "openocd",
       "configFiles": [
-        "${workspaceRoot}\\debug\\openocd_dap.cfg"
+        "${workspaceRoot}/debug/openocd_dap.cfg"
       ],
       "liveWatch": {
         "enabled": true,

@@ -32,8 +32,8 @@ typedef PACKED_STRUCT()
 {
     struct
     {
-        int16_t ch[5]; // 摇杆数据
-        char s[2];     // 拨杆数据
+        int16_t ch[4]; // 摇杆数据
+        char s[4];     // 拨杆数据
     } rc;
     struct
     {
@@ -67,6 +67,8 @@ void RC_control();
 void Keyboard_mouse_control();
 void VT13toRCdata();
 void RC_DATA_ZERO();
+void remote_control_task();
+
 
 
 #endif // !__REMOTE_CONTROL__

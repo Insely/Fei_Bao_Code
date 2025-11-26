@@ -1,30 +1,37 @@
 {
     "configurations": [
         {
-            "name": "windows-gcc-x64",
+            "name": "macos-gcc-x64",
             "includePath": [
-               "d:/RM/code/25-EE-code/**",
-                "d:/RM/code/25-EE-code/Omni/Applications/Software"
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/Omni/Applications/Software",
+                "/Users/insel/RM/code/25-EE-code/**"
             ],
-            "compilerPath": "D:/Program Files (x86)/Dev-Cpp/MinGW64/bin/gcc.exe",
-            "intelliSenseMode": "windows-gcc-x64",
+            "defines": [
+                "_DEBUG",
+                "MACOS"
+            ],
+            "compilerPath": "$(which gcc)",
             "compilerArgs": [
-                ""
+                "-Wall",
+                "-Wextra",
+                "-O0"
             ],
-            "compilerPathInCppPropertiesJson": "D:/Program Files (x86)/Dev-Cpp/MinGW64/bin/gcc.exe",
+            "intelliSenseMode": "macos-gcc-x64",
             "mergeConfigurations": false,
             "browse": {
                 "path": [
-                    "d:/RM/code/25-EE-code/**",
-                    "d:/RM/code/25-EE-code/Omni/Applications/Software",
-                    "${workspaceFolder}"
+                    "${workspaceFolder}/**",
+                    "/Users/insel/RM/code/25-EE-code/**"
                 ],
-                "limitSymbolsToIncludedHeaders": true
+                "limitSymbolsToIncludedHeaders": true,
+                "databaseFilename": ""
             },
-            "cStandard": "c17"
+            "cStandard": "c17",
+            "cppStandard": "c++17"
         },
         {
-            "name": "arm-gnu-toolchain",
+            "name": "arm-gnu-toolchain-macos",
             "includePath": [
                 "${workspaceFolder}/**",
                 "${workspaceFolder}/User/Algorithm",
@@ -37,16 +44,42 @@
                 "${workspaceFolder}/User/Software",
                 "${workspaceFolder}/User/Software/Chassis",
                 "${workspaceFolder}/User/Software/Gimbal",
-                "${workspaceFolder}/User/Software/Shoot"
+                "${workspaceFolder}/User/Software/Shoot",
+                "/Users/insel/STM32Cube/STM32Cube_FW_H7_V1.11.0/Drivers/STM32H7xx_HAL_Driver/Inc",
+                "/Users/insel/STM32Cube/STM32Cube_FW_H7_V1.11.0/Drivers/CMSIS/Include",
+                "/Users/insel/STM32Cube/STM32Cube_FW_H7_V1.11.0/Drivers/CMSIS/Device/ST/STM32H7xx/Include"
             ],
             "defines": [
                 "USE_HAL_DRIVER",
-                "STM32H723xx"
+                "STM32H723xx",
+                "DEBUG",
+                "HSE_VALUE=8000000UL"
             ],
-            "compilerPath": "D:/arm-none-eabi-gcc/bin/arm-none-eabi-gcc.exe",
+            "compilerPath": "$(which arm-none-eabi-gcc)",
+            "compilerArgs": [
+                "-mcpu=cortex-m7",
+                "-mthumb",
+                "-mfpu=fpv5-d16",
+                "-mfloat-abi=hard",
+                "-DSTM32H723xx",
+                "-Wall",
+                "-Wextra",
+                "-O0",
+                "-ffunction-sections",
+                "-fdata-sections"
+            ],
             "cStandard": "c17",
             "cppStandard": "gnu++14",
-            "intelliSenseMode": "gcc-arm"
+            "intelliSenseMode": "gcc-arm",
+            "mergeConfigurations": false,
+            "browse": {
+                "path": [
+                    "${workspaceFolder}/**",
+                    "/Users/insel/STM32Cube/STM32Cube_FW_H7_V1.11.0/Drivers/**"
+                ],
+                "limitSymbolsToIncludedHeaders": true,
+                "databaseFilename": ""
+            }
         }
     ],
     "version": 4

@@ -31,7 +31,7 @@
 #include "Gimbal.h"
 #include "Global_status.h"
 #include "Auto_control.h"
-#include "shoot.h"
+#include "Shoot.h"
 #include "music.h"
 
 #include "referee_system.h"
@@ -39,6 +39,7 @@
 #include "LED.h"
 #include "DT7.h"
 #include "VT13.h"
+#include "FSI6X.h"
 #include "motor.h"
 #include <cmsis_os2.h>
 
@@ -223,13 +224,12 @@ void Remote_control_Task(void *argument)
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
-    if (DT7_data.online >= 0)
-      DT7toRCdata();
-    else if (VT13_data.online >= 0)
-      VT13toRCdata();
-    RC_control();
-    Keyboard_mouse_control();
+    // osDelay(1);
+    // if (DT7_data.online >= 0)
+    //   DT7toRCdata();
+    // else if (VT13_data.online >= 0)
+    //   VT13toRCdata();
+    remote_control_task();
     osDelay(1);
   }
   /* USER CODE END Remote_control_Task */

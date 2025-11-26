@@ -182,10 +182,17 @@ void VT13toRCdata()
  */
 void FSI6XtoRCdata()
 { 
-   RC_data.rc.ch[0]=SBUS_CH.CH1;
-   RC_data.rc.ch[1]=SBUS_CH.CH2;
-   RC_data.rc.ch[2]=SBUS_CH.CH4;
-   RC_data.rc.ch[3]=SBUS_CH.CH3;
+   RC_data.rc.ch[0]=FSI6X_data.CH1;
+   RC_data.rc.ch[1]=FSI6X_data.CH2;
+   RC_data.rc.ch[2]=FSI6X_data.CH4;
+   RC_data.rc.ch[3]=FSI6X_data.CH3;
+    RC_data.rc.s[0]=FSI6X_data.CH5;
+    RC_data.rc.s[1]=FSI6X_data.CH6;
+    RC_data.rc.s[2]=FSI6X_data.CH7;
+    RC_data.rc.s[3]=FSI6X_data.CH8;
+
+
+
 
    for(int i = 0 ; i<4 ; i++) //死区判断
    {
@@ -193,45 +200,8 @@ void FSI6XtoRCdata()
     RC_data.rc.ch[i] = 0;
    }
    
-   if(SBUS_CH.CH8==FS_DOWN)//LOCK
-   {
-    RC_data.rc.s[0]=RC_SW_DOWN;
-    RC_data.rc.s[1]=RC_SW_DOWN;
-   }
-   else if (SBUS_CH.CH8==FS_UP)
-   {
-     if (SBUS_CH.CH7==FS_MID && SBUS_CH.CH6 == FS_UP)//正小陀螺
-     {
-        RC_data.rc.s[0]=RC_SW_UP ;
-        RC_data.rc.s[1]=RC_SW_MID;
-     }
-     else if (SBUS_CH.CH7==FS_DOWN && SBUS_CH.CH6 == FS_UP)//逆小陀螺
-     {
-        RC_data.rc.s[1]=RC_SW_DOWN;
-        RC_data.rc.s[0]=RC_SW_MID;
-     }
-     else if(SBUS_CH.CH6 == FS_DOWN && SBUS_CH.CH7 == FS_UP)//开启摩擦轮
-     {
-       RC_data.rc.s[1]=RC_SW_UP; 
-       RC_data.rc.s[0]=RC_SW_MID;
-       
-     }
-     else
-     {
-       RC_data.rc.s[1]=RC_SW_MID; 
-       RC_data.rc.s[0]=RC_SW_MID;
-     }
-     if(SBUS_CH.CH5 == FS_DOWN) //开火
-       {
-        RC_data.rc.ch[4] = 660;
-       }
-       else if(SBUS_CH.CH5 == FS_UP)
-       {
-        RC_data.rc.ch[4] = 0;
-       }
-   }
-   SBUS_CH.online--;
-   RC_data.online = SBUS_CH.online;
+   FSI6X_data.online--;
+   RC_data.online = FSI6X_data.online;
 }
 
 /**
@@ -251,55 +221,7 @@ void RC_control()
         Global.Control.mode = RC;
     if (Global.Control.mode != RC)
         return;
-    /*底盘控制*/
-    if (RC_data.rc.s[0]==RC_SW_UP && RC_data.rc.s[1]==RC_SW_MID) // 右上,左中||左上，正小陀螺
-        Global.Chssis.mode = SPIN_P;
-    else if (RC_data.rc.s[1]==RC_SW_DOWN && RC_data.rc.s[0]==RC_SW_MID ) // 左下,右中||右上，負小陀螺
-        Global.Chssis.mode = SPIN_N;
-    else
-        Global.Chssis.mode = FLOW;
-    Chassis_set_x(RC_data.rc.ch[0] / 40.0f);
-    Chassis_set_y(RC_data.rc.ch[1] / 40.0f);
-    /*云台控制*/
-    if ((Global.Auto.input.Auto_control_online <= 0 || Global.Auto.mode == NONE || Global.Auto.input.fire == -1) && Global.Gimbal.mode == NORMAL)
-    {
-        Gimbal_set_pitch_angle(Global.Gimbal.input.pitch + RC_data.rc.ch[3] / 2000.0f);
-        Gimbal_set_yaw_angle(-RC_data.rc.ch[2]);
-    }
-    /*自瞄控制*/
-    if (RC_data.rc.s[0]==RC_SW_DOWN && (RC_data.rc.s[1]==RC_SW_MID || RC_data.rc.s[1]==RC_SW_UP)) // 右下,左中||左上，自瞄,射击模式
-    {
-        Global.Auto.mode = CAR;
-    }
-    else
-    {
-        Global.Auto.mode = NONE;
-    }
-    /*发弹机构控制*/
-    if (RC_data.rc.s[1]==RC_SW_UP && (RC_data.rc.s[0]==RC_SW_MID || RC_data.rc.s[0]==RC_SW_DOWN)) // 左上，右中||右下，开启摩擦轮
-        Global.Shoot.shoot_mode = READY;
-    else
-        Global.Shoot.shoot_mode = CLOSE;
-    if (RC_data.rc.ch[4] >= 300 &&
-        RC_data.rc.ch[4] <= 660 &&
-        Global.Shoot.shoot_mode != CLOSE &&
-        (Global.Auto.mode == NONE ||
-         Global.Auto.input.fire == 1)) // 滚轮最下头，高速发弹，若自瞄打开，发弹标志位置1允许发弹
-        Global.Shoot.tigger_mode = HIGH;
-    else if (RC_data.rc.ch[4] >= 50 &&
-             RC_data.rc.ch[4] <= 300 &&
-             Global.Shoot.shoot_mode != CLOSE &&
-             (Global.Auto.mode == NONE ||
-              Global.Auto.input.fire == 1)) // 滚轮中部，低速发弹,若自瞄打开，发弹标志位置1允许发弹
-        Global.Shoot.tigger_mode = LOW;
-    else if (RC_data.rc.ch[4] > 660 &&
-             Global.Shoot.shoot_mode != CLOSE)
-    {
-        Global.Shoot.shoot_mode = DEBUG_SHOOT;
-        Global.Shoot.tigger_mode = DEBUG_SHOOT;
-    }
-    else
-        Global.Shoot.tigger_mode = TRIGGER_CLOSE;
+    
 }
 
 
@@ -397,6 +319,14 @@ void Keyboard_mouse_control(void)
         Global.Shoot.tigger_mode = HIGH;
     else
         Global.Shoot.tigger_mode = TRIGGER_CLOSE;
+}
+
+
+void remote_control_task(void){
+    FSI6XtoRCdata();
+    RC_control();
+    Keyboard_mouse_control();
+
 }
 #endif //(GIMBAL_TYPE == DJIMOTOR_AS_GIMBALMOTOR)
 
