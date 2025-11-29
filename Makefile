@@ -45,7 +45,8 @@ COMMON_SOURCES = \
     $(wildcard User/Software/*.c) \
 	$(wildcard User/Software/Chassis/*.c) \
 	$(wildcard User/Software/Gimbal/*.c) \
-	$(wildcard User/Software/Shoot/*.c) 
+	$(wildcard User/Software/Shoot/*.c) \
+	$(wildcard User/Software/Fei_Bao*.c)
 
 ######################################
 # C sources
@@ -185,7 +186,8 @@ COMMON_INCLUDES = \
 -IUser/Software/Chassis \
 -IUser/Software/Gimbal \
 -IUser/Software/Shoot \
--IUser/Typedefine
+-IUser/Typedefine \
+-IUser/Software/Fei_Bao
 # AS includes
 AS_INCLUDES =  \
 -ICore/Inc \

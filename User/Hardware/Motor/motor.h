@@ -106,6 +106,7 @@ void DJIMotor_set(int16_t val, DJIcan_id motor_id);
 void DJIMotor_decode_candata(FDCAN_HandleTypeDef *hfdcan, uint32_t id, uint8_t *data);
 void DJIMotor_send_current(DJIcan_id motor_id);
 DJI_motor_data_s DJIMotor_get_data(DJIcan_id motor_id);
+extern DJI_motor_data_s DJIMotor_data[QUANTITY_OF_CAN][QUANTITY_OF_DJIMOTOR];
 
 #endif // USE_DJIMotor
 

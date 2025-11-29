@@ -31,7 +31,7 @@
 #include "Gimbal.h"
 #include "Global_status.h"
 #include "Auto_control.h"
-#include "Shoot.h"
+#include "shoot.h"
 #include "music.h"
 
 #include "referee_system.h"
@@ -41,6 +41,7 @@
 #include "VT13.h"
 #include "FSI6X.h"
 #include "motor.h"
+#include "fei_bao_param.h"
 #include <cmsis_os2.h>
 
 #include "iwdg.h"
@@ -67,6 +68,7 @@
 uint32_t color = 0;
 /* USER CODE END Variables */
 /* Definitions for Remote_control */
+enum shoot_control shoot_control_mode;
 osThreadId_t Remote_controlHandle;
 const osThreadAttr_t Remote_control_attributes = {
   .name = "Remote_control",
@@ -248,8 +250,32 @@ void Gimbal_Task(void *argument)
   /* Infinite loop */
   for(;;)
   {
-    Gimbal_control();
-    osDelay(1);
+//     		if ((RC_data.rc.s[2] ==1024.0f&&(RC_data.rc.s[0] == 1807.0f||RC_data.rc.s[1]==1807.0f||RC_data.rc.s[3]==1807.0f))||RC_data.rc.s[2]==1807.0f)  // 自动模式
+//     { 
+// 			Save_time_allow = YES;
+//       // 发射模式切换为自控模式
+//       shoot_control_mode = AUTO_MODE;		//这将会作为下面任务执行手动还是自动的判断依据
+//       // 电机模式切换为位置控制
+//       shoot.Sten_left.mode = POSITION;
+//       shoot.Sten_right.mode = POSITION;
+//       shoot.Push_dart.mode = POSITION;
+// 			shoot.Trigger.mode = POSITION;
+
+//     }
+// 		else // 手动模式
+//     {
+//       // 发射模式切换为手动模式
+// 			Save_time_allow = NO;
+//       shoot_control_mode = MANUAL_MODE;		//这将会作为下面任务执行手动还是自动的判断依据
+//       // 电机模式切换为速度控制
+// 			shoot.Sten_left.mode = VELOCITY;
+// 			shoot.Sten_right.mode = VELOCITY;
+// 			shoot.Push_dart.mode = VELOCITY;
+// 			shoot.Yaw_root.mode = VELOCITY;
+// 			shoot.Trigger.mode = VELOCITY;
+// //			time_table= 0;
+//     }
+    osDelay(5);
   }
   /* USER CODE END Gimbal_Task */
 }
@@ -267,8 +293,6 @@ void Chassis_Task(void *argument)
   /* Infinite loop */
   for(;;)
   {
-    Chassis_move();
-    Supercup_send_data();
     osDelay(1);
   }
   /* USER CODE END Chassis_Task */
@@ -314,9 +338,6 @@ void Shoot_Task(void *argument)
   for(;;)
   {
   
-  if (Global.Auto.mode != NONE && Global.Auto.input.Auto_control_online > 0 && Global.Auto.input.fire != -1)
-  Auto_control();
-  Shoot_task();
   osDelay(1);
  
   }

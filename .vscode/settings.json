@@ -122,7 +122,9 @@
     "compare": "c",
     "type_traits": "c",
     "dm_imu.h": "c",
-    "robot_param_omni_infantry.h": "c"
+    "robot_param_omni_infantry.h": "c",
+    "stdint.h": "c",
+    "cstdint": "c"
   },
   "files.encoding": "gbk",
   "makefile.makefilePath": "D:\\RM\\code\\25-EE-code\\Makefile",

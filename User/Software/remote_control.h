@@ -61,6 +61,7 @@ typedef PACKED_STRUCT()
 }
 RC_ctrl_t;
 
+extern RC_ctrl_t RC_data;
 /*外部函数调用*/
 void DT7toRCdata();
 void RC_control();

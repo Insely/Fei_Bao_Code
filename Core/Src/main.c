@@ -47,7 +47,7 @@
 #include "music.h"
 #include "Chassis.h"
 #include "Gimbal.h"
-#include "Shoot.h"
+#include "shoot.h"
 #include "Auto_control.h"
 #include "Global_status.h"
 
