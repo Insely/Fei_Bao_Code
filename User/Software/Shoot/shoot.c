@@ -1,16 +1,13 @@
 #include "shoot.h"
 
+#define ERROR 100;
 float Count_dart=0.0f;          //发射飞镖计数
 int push_dart = 1;
-
-
 
 //修改位置
 
 
-
-
-float  Energy_storage_angle[2]=    {2150.0f,-2150.0f};//2250   最近一次2370  2320 2250 2370
+float  Energy_storage_angle[2]={2150.0f,-2150.0f};//2250   最近一次2370  2320 2250 2370
 float  Energy_storage_mid_angle[2]={1380.0f,-1380.0f};//
 float  Push_angle=702.0f;                        //等效推镖行程
 float  Sten_velocity = 0, Push_dart_velocity = 0, Trigger_velocity = 0,Yaw_velocity = 0;
@@ -65,18 +62,6 @@ float Push_2006motor;
 float trigger_2006motor;
 float Yaw_root_3508motor;
 
-
-
-// 储能3508
-#define STEN_LEFT CAN_1_1
-#define STEN_RIGHT CAN_1_2
-// 扳机2006
-#define TRIGGER CAN_1_3
-// 推镖2006
-#define PUSH_DART CAN_1_4
-// Yaw轴3508
-#define YAW_ROOT CAN_1_5
-
 /*
 舵机与C板接口说明：
   PIN_1  装填左一
@@ -128,7 +113,6 @@ void Shoot_init()
 
 	pid_set(&Sten_right_speed_pid_auto, 2.8f, 0.0f, 0.5f, 15000.0f, 0.0f);//单速度环下效果很好
 	pid_set(&Sten_right_location_pid_auto, 50.0f, 80.0f,0.21f, 5000.0f, 0.0f);	
-	
 	
 	pid_set(&Trigger_speed_pid, 1.0f, 0.0f, 0.0f, 12000.0f, 0.0f);//单速度环下效果很好
 	pid_set(&Trigger_location_pid, 100.0f, 0, 0.0f, 10000.0f, 0.0f);
@@ -235,7 +219,7 @@ void Shoot_updata()
 	shoot.Push_dart.Now_position = get_CAN1_DJImotor_data(PUSH_DART).angle_cnt - shoot.Push_dart.Set_zero_piont;
 //	shoot.Push_dart.Now_position = get_CAN1_DJImotor_data(PUSH_DART).ecd_cnt;
 	shoot.Push_dart.Now_velocity = get_CAN1_DJImotor_data(PUSH_DART).round_speed;
-	// Yaw轴3508更新 
+	// Yaw轴3508更新
 	shoot.Yaw_root.Now_position = get_CAN1_DJImotor_data(YAW_ROOT).angle_cnt - shoot.Yaw_root.Set_zero_piont;
 	shoot.Yaw_root.Now_velocity = get_CAN1_DJImotor_data(YAW_ROOT).round_speed;
 
@@ -248,9 +232,16 @@ void Shoot_set_sten_position(float Sten_left, float Sten_right)
 }
 // 设置储能3508速度
 void Shoot_set_sten_velocity(float Sten_left, float Sten_right)
-{
-	shoot.Sten_left.Set_velocity =  Sten_left;
+{	if(Sten_left>0||Sten_right>0)
+	{
+	shoot.Sten_left.Set_velocity =  Sten_left+ERROR;
 	shoot.Sten_right.Set_velocity = -Sten_right;
+	}
+	else{
+	shoot.Sten_left.Set_velocity =  Sten_left-ERROR;
+	shoot.Sten_right.Set_velocity = -Sten_right;
+
+	}
 }
 // 设置扳机2006角度
 void Shoot_set_sten_trigger_position(float Sten_trigger)
@@ -321,13 +312,13 @@ void Shoot_pid_cal()
 //		shoot.Trigger.velocity = pid_cal(&Push_dart_location_pid_auto, shoot.Trigger.Now_position, shoot.Trigger.Set_position);
 //		shoot.Yaw_root.velocity = pid_cal(&Yaw_root_location_pid, shoot.Yaw_root.Now_position, shoot.Yaw_root.Set_position);
 
-	
+
 	// 速度环
 	// 左侧储能3508
 		set_CAN1_DJImotor(pid_cal(&Sten_left_speed_pid_auto, get_CAN1_DJImotor_data(STEN_LEFT).speed_rpm, shoot.Sten_left.velocity), STEN_LEFT);
 
 	// 右侧储能3508
-		set_CAN1_DJImotor(pid_cal(&Sten_right_speed_pid_auto, get_CAN1_DJImotor_data(STEN_RIGHT).speed_rpm, shoot.Sten_right.velocity)+100.0f, STEN_RIGHT);
+		set_CAN1_DJImotor(pid_cal(&Sten_right_speed_pid_auto, get_CAN1_DJImotor_data(STEN_RIGHT).speed_rpm, shoot.Sten_right.velocity), STEN_RIGHT);
 
 	// 推镖2006
 		set_CAN1_DJImotor(pid_cal(&Push_dart_speed_pid_auto, -get_CAN1_DJImotor_data(PUSH_DART).speed_rpm, shoot.Push_dart.velocity), PUSH_DART);
@@ -496,8 +487,9 @@ DJI_motor_data_s get_CAN1_DJImotor_data(DJIcan_id motorID){
 
 }
 
+
 void set_CAN1_DJImotor(int16_t val, DJIcan_id motorID) // 设定马达电流
 {
-  DJIMotor_data[1][motorID].set = val; // val
+  DJIMotor_data[0][motorID].set = val; // val
 }
 // end of file

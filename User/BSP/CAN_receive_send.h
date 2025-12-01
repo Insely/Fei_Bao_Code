@@ -15,7 +15,7 @@ extern FDCAN_HandleTypeDef* get_can_handle(uint8_t can_bus);
 
 extern void can_init(void);
 
-extern uint8_t fdcanx_send_data(FDCAN_HandleTypeDef *hfdcan, uint16_t id, uint8_t *data, uint32_t len);
+extern uint8_t Fdcanx_SendData(FDCAN_HandleTypeDef *hfdcan, uint16_t id, uint8_t *data, uint32_t len);
 extern uint8_t fdcanx_receive(FDCAN_HandleTypeDef *hfdcan,	FDCAN_RxHeaderTypeDef *fdcan_RxHeader, uint8_t *buf);
 
 extern void HAL_FDCAN_ErrorCallback(FDCAN_HandleTypeDef *hfdcan);

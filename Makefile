@@ -46,7 +46,7 @@ COMMON_SOURCES = \
 	$(wildcard User/Software/Chassis/*.c) \
 	$(wildcard User/Software/Gimbal/*.c) \
 	$(wildcard User/Software/Shoot/*.c) \
-	$(wildcard User/Software/Fei_Bao*.c)
+	$(wildcard User/Software/Fei_Bao/*.c)
 
 ######################################
 # C sources

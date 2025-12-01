@@ -1,6 +1,8 @@
 #ifndef __SHOOT_H__
 #define __SHOOT_H__
 
+#include "stdlib.h"
+#include "string.h"
 #include "stdint.h"
 #include "pid.h"
 #include "motor.h"
@@ -63,64 +65,23 @@ extern enum shoot_control shoot_control_mode;
 
 
 
+typedef struct 
+{
+    float  Set_velocity, Now_velocity, Last_velocity, velocity;
+    float  Set_position, Now_position, Last_position, Set_zero_piont, position;
+    Controll_mode mode;
+} Motor_Control_Data_t; // 定义通用的内部结构体
+
 struct shoot_status
 {
-	struct
-	{
-	  	float  Set_velocity, Now_velocity, Last_velocity,velocity;
-		  float  Set_position, Now_position, Last_position,Set_zero_piont,position;
-		  Controll_mode mode;
-	}Sten_left;
-
-	struct
-	{
-	  	float  Set_velocity, Now_velocity, Last_velocity,velocity;
-		  float  Set_position, Now_position, Last_position,Set_zero_piont,position;
-		  Controll_mode mode;
-	}Sten_right;
-	
-	struct
-	{
-	  	float  Set_velocity, Now_velocity, Last_velocity,velocity;
-		  float  Set_position, Now_position, Last_position,Set_zero_piont,position;
-		  Controll_mode mode;
-	}Trigger;
-	
-	struct
-	{
-	  	float  Set_velocity, Now_velocity, Last_velocity,velocity;
-		  float  Set_position, Now_position, Last_position,Set_zero_piont,position;
-		  Controll_mode mode;
-	}Push_dart;
-	
-	struct
-	{
-	  	float  Set_velocity, Now_velocity, Last_velocity,velocity;
-		  float  Set_position, Now_position, Last_position,Set_zero_piont,position;
-		  Controll_mode mode;
-	}Yaw_root;	
-	
-	struct
-	{
-	  	float  Set_velocity, Now_velocity, Last_velocity,velocity;
-		  float  Set_position, Now_position, Last_position,Set_zero_piont,position;
-		  Controll_mode mode;		
-	}Load_joint_root;
-	
-	struct
-	{
-	  	float  Set_velocity, Now_velocity, Last_velocity,velocity;
-		  float  Set_position, Now_position, Last_position,Set_zero_piont,position;
-		  Controll_mode mode;		
-	}Load_joint_mid;
-	
-	struct
-	{
-	  	float  Set_velocity, Now_velocity, Last_velocity,velocity;
-		  float  Set_position, Now_position, Last_position,Set_zero_piont,position;
-		  Controll_mode mode;		
-	}Load_joint_end;
-	
+    Motor_Control_Data_t Sten_left;
+    Motor_Control_Data_t Sten_right;
+    Motor_Control_Data_t Trigger;
+    Motor_Control_Data_t Push_dart;
+    Motor_Control_Data_t Yaw_root;
+    Motor_Control_Data_t Load_joint_root;
+    Motor_Control_Data_t Load_joint_mid;
+    Motor_Control_Data_t Load_joint_end;
 };
 extern struct shoot_status shoot;
 
@@ -158,6 +119,7 @@ enum State
 //extern	float Real_time[20];                    //储存现在的系统时间
 
 //extern  int Read_only_one;
+extern struct shoot_status shoot;
 
 extern	float Count_dart;//发射飞镖计数
 extern	float  Energy_storage_angle[2];    //等效镖体发射行程
@@ -221,8 +183,7 @@ extern float Yaw_root_3508motor;
 void Shoot_init(void);
 
 void Shoot_pid_cal(void);
-
-
+void Shoot_updata(void);
 
 void DART_double_sten(int altitude,int delay_time_ms,float change_num);
 void DART_Push_2006motor(int altitude,int delay_time_ms,float change_num);
@@ -230,6 +191,15 @@ void DART_Trigger_2006motor(int altitude,int delay_time_ms,float change_num);
 void DART_Yaw_root_3508motor(int altitude,int delay_time_ms,float change_num);
 DJI_motor_data_s get_CAN1_DJImotor_data(DJIcan_id motorID);
 void set_CAN1_DJImotor(int16_t val, DJIcan_id motorID);
+
+void Shoot_set_sten_position(float Sten_left, float Sten_right);
+void Shoot_set_sten_velocity(float Sten_left, float Sten_right);
+void Shoot_set_sten_trigger_position(float Sten_trigger);
+void Shoot_set_sten_trigger_velocity(float Sten_trigger);
+void Shoot_set_push_dart_position(float Push_dart);
+void Shoot_set_push_dart_velocity(float Push_dart);
+void Shoot_set_yaw_root_position(float Yaw_root);
+void Shoot_set_yaw_root_velocity(float Yaw_root);
 
 
 

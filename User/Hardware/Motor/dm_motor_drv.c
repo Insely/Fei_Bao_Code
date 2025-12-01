@@ -218,7 +218,7 @@ void enable_motor_mode(FDCAN_HandleTypeDef* hcan, uint16_t motor_id, uint16_t mo
 	data[6] = 0xFF;
 	data[7] = 0xFC;
 	
-	fdcanx_send_data(hcan, id, data, 8);
+	Fdcanx_SendData(hcan, id, data, 8);
 }
 /**
 ************************************************************************
@@ -244,7 +244,7 @@ void disable_motor_mode(FDCAN_HandleTypeDef* hcan, uint16_t motor_id, uint16_t m
 	data[6] = 0xFF;
 	data[7] = 0xFD;
 	
-	fdcanx_send_data(hcan, id, data, 8);
+	Fdcanx_SendData(hcan, id, data, 8);
 }
 /**
 ************************************************************************
@@ -270,7 +270,7 @@ void save_pos_zero(FDCAN_HandleTypeDef* hcan, uint16_t motor_id, uint16_t mode_i
 	data[6] = 0xFF;
 	data[7] = 0xFE;
 	
-	fdcanx_send_data(hcan, id, data, 8);
+	Fdcanx_SendData(hcan, id, data, 8);
 }
 /**
 ************************************************************************
@@ -296,7 +296,7 @@ void clear_err(FDCAN_HandleTypeDef* hcan, uint16_t motor_id, uint16_t mode_id)
 	data[6] = 0xFF;
 	data[7] = 0xFB;
 	
-	fdcanx_send_data(hcan, id, data, 8);
+	Fdcanx_SendData(hcan, id, data, 8);
 }
 /**
 ************************************************************************
@@ -333,7 +333,7 @@ void mit_ctrl(FDCAN_HandleTypeDef* hcan, DM_motor_t *motor, uint16_t motor_id, f
 	data[6] = ((kd_tmp&0xF)<<4)|(tor_tmp>>8);
 	data[7] = tor_tmp;
 	
-	fdcanx_send_data(hcan, id, data, 8);
+	Fdcanx_SendData(hcan, id, data, 8);
 }
 /**
 ************************************************************************
@@ -365,7 +365,7 @@ void pos_ctrl(FDCAN_HandleTypeDef* hcan,uint16_t motor_id, float pos, float vel)
 	data[6] = *(vbuf+2);
 	data[7] = *(vbuf+3);
 	
-	fdcanx_send_data(hcan, id, data, 8);
+	Fdcanx_SendData(hcan, id, data, 8);
 }
 /**
 ************************************************************************
@@ -391,7 +391,7 @@ void spd_ctrl(FDCAN_HandleTypeDef* hcan, uint16_t motor_id, float vel)
 	data[2] = *(vbuf+2);
 	data[3] = *(vbuf+3);
 	
-	fdcanx_send_data(hcan, id, data, 4);
+	Fdcanx_SendData(hcan, id, data, 4);
 }
 
 /**
@@ -431,7 +431,7 @@ void psi_ctrl(FDCAN_HandleTypeDef* hcan, uint16_t motor_id, float pos, float vel
 	data[6] = *ibuf;
 	data[7] = *(ibuf+1);
 	
-	fdcanx_send_data(hcan, id, data, 8);
+	Fdcanx_SendData(hcan, id, data, 8);
 }
 /**
 ************************************************************************
@@ -448,7 +448,7 @@ void read_motor_data(uint16_t id, uint8_t rid)
 	uint8_t can_id_h = (id >> 4) & 0x0F;
 	
 	uint8_t data[4] = {can_id_l, can_id_h, 0x33, rid};
-	fdcanx_send_data(&hfdcan1, 0x7FF, data, 4);
+	Fdcanx_SendData(&hfdcan1, 0x7FF, data, 4);
 }
 /**
 ************************************************************************
@@ -464,7 +464,7 @@ void read_motor_ctrl_fbdata(uint16_t id)
     uint8_t can_id_h = (id >> 8) & 0x07; // é«? 3 ä½?
 
 	uint8_t data[4] = {can_id_l, can_id_h, 0xCC, 0x00};
-	fdcanx_send_data(&hfdcan1, 0x7FF, data, 4);
+	Fdcanx_SendData(&hfdcan1, 0x7FF, data, 4);
 }
 /**
 ************************************************************************
@@ -482,7 +482,7 @@ void write_motor_data(uint16_t id, uint8_t rid, uint8_t d0, uint8_t d1, uint8_t 
     uint8_t can_id_h = (id >> 8) & 0x07; // é«? 3 ä½?
 	
 	uint8_t data[8] = {can_id_l, can_id_h, 0x55, rid, d0, d1, d2, d3};
-	fdcanx_send_data(&hfdcan1, 0x7FF, data, 8);
+	Fdcanx_SendData(&hfdcan1, 0x7FF, data, 8);
 }
 /**
 ************************************************************************
@@ -499,6 +499,6 @@ void save_motor_data(uint16_t id, uint8_t rid)
     uint8_t can_id_h = (id >> 8) & 0x07; // é«? 3 ä½?
 	
 	uint8_t data[4] = {can_id_l, can_id_h, 0xAA, 0x01};
-	fdcanx_send_data(&hfdcan1, 0x7FF, data, 4);
+	Fdcanx_SendData(&hfdcan1, 0x7FF, data, 4);
 }
 

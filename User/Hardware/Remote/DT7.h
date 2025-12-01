@@ -15,9 +15,9 @@
 #define RC_CH_VALUE_MAX         ((uint16_t)1684)
 
 /* ----------------------- RC Switch Definition----------------------------- */
-#define RC_SW_UP                ((uint16_t)1)
-#define RC_SW_MID               ((uint16_t)3)
-#define RC_SW_DOWN              ((uint16_t)2)
+#define RC_SW_UP                ((uint16_t)240.0f)
+#define RC_SW_MID               ((uint16_t)1024.0f)
+#define RC_SW_DOWN              ((uint16_t)1807.0f)
 #define switch_is_down(a)       (RC_data.rc.s[a] == RC_SW_DOWN)
 #define switch_is_mid(a)        (RC_data.rc.s[a] == RC_SW_MID)
 #define switch_is_up(a)         (RC_data.rc.s[a] == RC_SW_UP)

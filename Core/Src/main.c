@@ -29,6 +29,7 @@
 #include "usart.h"
 #include "usb_device.h"
 #include "gpio.h"
+#include "launch.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -141,7 +142,7 @@ int main(void)
   MX_TIM1_Init();
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
- HAL_IWDG_Refresh(&hiwdg1);
+  HAL_IWDG_Refresh(&hiwdg1);
  /*INIT*/
   uart_init();
   can_init();
@@ -149,9 +150,9 @@ int main(void)
 
   IMU_init();
   Music_init();
-  Chassis_init();
-  Gimbal_init();
-  Shoot_init();
+  // Chassis_init();
+  // Gimbal_init();
+  // Shoot_init();
   HAL_IWDG_Refresh(&hiwdg1);
   HAL_GPIO_WritePin(Power_5V_GPIO_Port, Power_5V_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(Camera_ctrl_GPIO_Port, Camera_ctrl_Pin, GPIO_PIN_SET);

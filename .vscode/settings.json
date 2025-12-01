@@ -124,7 +124,12 @@
     "dm_imu.h": "c",
     "robot_param_omni_infantry.h": "c",
     "stdint.h": "c",
-    "cstdint": "c"
+    "cstdint": "c",
+    "need_h.h": "c",
+    "fei_bao_param.h": "c",
+    "launch.h": "c",
+    "motor_control_task.h": "c",
+    "random": "c"
   },
   "files.encoding": "gbk",
   "makefile.makefilePath": "D:\\RM\\code\\25-EE-code\\Makefile",

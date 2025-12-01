@@ -33,6 +33,21 @@ typedef enum
 
     CAN_6020_5_7_send_ID = 0x2FF,
 
+    DJI_CAN_1 = 0,
+
+    DJI_CAN_2 = 1,
+
+    DJI_CAN_3 = 2,
+
+    CAN_20063508_1_4_ID = 3,
+
+    CAN_20063508_5_8_ID = 4,
+
+    CAN_6020_1_4_ID = 5,
+
+    CAN_6020_5_7_ID = 6,
+
+
     CAN_ID1 = 0x201,
 } DJIcan_send_id_e;
 
@@ -104,7 +119,7 @@ void DJIMotor_init(Motor_Type_e motor_type, DJIcan_id motor_id);
 void DJIMotor_setzero(double zero_angle, DJIcan_id motor_id);
 void DJIMotor_set(int16_t val, DJIcan_id motor_id);
 void DJIMotor_decode_candata(FDCAN_HandleTypeDef *hfdcan, uint32_t id, uint8_t *data);
-void DJIMotor_send_current(DJIcan_id motor_id);
+void DJIMotor_SendCurrent(DJIcan_send_id_e CAN_Send_ID , DJIcan_send_id_e CAN_Type);
 DJI_motor_data_s DJIMotor_get_data(DJIcan_id motor_id);
 extern DJI_motor_data_s DJIMotor_data[QUANTITY_OF_CAN][QUANTITY_OF_DJIMOTOR];
 

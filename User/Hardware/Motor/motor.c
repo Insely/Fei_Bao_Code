@@ -157,21 +157,16 @@ void DJIMotor_decode_candata(FDCAN_HandleTypeDef *hfdcan, uint32_t id, uint8_t *
     }
 }
 
-/**
- * @brief 大疆电机电流值发送，建议放freertos里定期发送（这个函数好大，应该拆一下）
+/*
+ * @brief 大疆电机电流值发送，建议放freertos里定期发送
  *
  */
-void DJIMotor_send_current(DJIcan_id motor_id)
+void DJIMotor_SendCurrent(DJIcan_send_id_e CAN_Send_ID , DJIcan_send_id_e CAN_Type)
 {
-    if (motor_id >= DJI_MOTOR_NUM)
-         return  ;
-
-    uint8_t can_send_data[8] = {0};
-    uint8_t cantype = motor_id / 11; // 获得电机所在can路
-    uint8_t canid =  (motor_id % 11);   // 得到电机ID值；
-    uint8_t ID = (DJIMotor_data[cantype][canid].Motor_type == DJI_GM6020) ? (canid - 4) : (canid);
-    uint8_t datanum = (ID < 4) ? (ID * 2 ) : ((ID - 4) * 2 ) ;
-    FDCAN_HandleTypeDef *hcan = get_can_handle(cantype);
+    uint8_t can_send_data[8];
+    uint8_t canid;
+    uint16_t identifier;
+    FDCAN_HandleTypeDef *hcan ;
 
     if (hfdcan1.ErrorCode)
         HAL_FDCAN_ErrorCallback(&hfdcan1);
@@ -180,21 +175,54 @@ void DJIMotor_send_current(DJIcan_id motor_id)
     if (hfdcan3.ErrorCode)
         HAL_FDCAN_ErrorCallback(&hfdcan3);
 
-    can_send_data[datanum] = (DJIMotor_data[cantype][canid].set >> 8);
-    can_send_data[datanum + 1] = DJIMotor_data[cantype][canid].set;
-
-    if (DJIMotor_data[cantype][canid].Motor_type == DJI_GM6020)
+    // 判断电机类型以及电机ID
+    switch (CAN_Send_ID)
     {
-        if (ID < 4) fdcanx_send_data(hcan, CAN_6020_1_4_send_ID, can_send_data, 8);
-        else fdcanx_send_data(hcan, CAN_6020_5_7_send_ID, can_send_data, 8);
+        case CAN_20063508_1_4_ID:
+        {
+            identifier = CAN_20063508_1_4_send_ID;
+            canid = 0;
+            break;
+        }
+        case CAN_20063508_5_8_ID:
+        {
+            identifier = CAN_20063508_5_8_send_ID;
+            canid = 4;
+             break;
+        }
+        case CAN_6020_1_4_ID:
+        {
+            identifier = CAN_6020_1_4_send_ID;
+            canid = 4;
+             break;
+        }
+        case CAN_6020_5_7_ID:
+        {
+            identifier = CAN_6020_5_7_send_ID;
+            canid = 8;
+             break;
+        }
     }
-    else 
-    {
-        if (ID < 4) fdcanx_send_data(hcan, CAN_20063508_1_4_send_ID, can_send_data, 8);
-        else fdcanx_send_data(hcan, CAN_20063508_5_8_send_ID, can_send_data, 8);
-    }
-
     
+    // 判断CAN路
+    switch (CAN_Type)
+    {
+        case DJI_CAN_1: hcan = &hfdcan1 ; break;
+        case DJI_CAN_2: hcan = &hfdcan2 ; break;
+        case DJI_CAN_3: hcan = &hfdcan3 ; break;
+    }   
+    
+    // 三路can依次赋值
+    for (int i = 0; i < 8; i += 2)
+    {
+        can_send_data[i] = (DJIMotor_data[CAN_Type][canid].set >> 8);
+        can_send_data[i+1] = DJIMotor_data[CAN_Type][canid].set;
+        canid++;    
+    }
+   
+    // 发送CAN数据
+    Fdcanx_SendData(hcan, identifier, can_send_data, 8);
+
 }
 
 #endif // USE_DJIMotor

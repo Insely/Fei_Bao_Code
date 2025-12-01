@@ -42,6 +42,7 @@
 #include "FSI6X.h"
 #include "motor.h"
 #include "fei_bao_param.h"
+#include "need_h.h"
 #include <cmsis_os2.h>
 
 #include "iwdg.h"
@@ -250,31 +251,31 @@ void Gimbal_Task(void *argument)
   /* Infinite loop */
   for(;;)
   {
-//     		if ((RC_data.rc.s[2] ==1024.0f&&(RC_data.rc.s[0] == 1807.0f||RC_data.rc.s[1]==1807.0f||RC_data.rc.s[3]==1807.0f))||RC_data.rc.s[2]==1807.0f)  // 自动模式
-//     { 
-// 			Save_time_allow = YES;
-//       // 发射模式切换为自控模式
-//       shoot_control_mode = AUTO_MODE;		//这将会作为下面任务执行手动还是自动的判断依据
-//       // 电机模式切换为位置控制
-//       shoot.Sten_left.mode = POSITION;
-//       shoot.Sten_right.mode = POSITION;
-//       shoot.Push_dart.mode = POSITION;
-// 			shoot.Trigger.mode = POSITION;
+    		if ((RC_data.rc.s[2] ==1024.0f&&(RC_data.rc.s[0] == 1807.0f||RC_data.rc.s[1]==1807.0f||RC_data.rc.s[3]==1807.0f))||RC_data.rc.s[2]==1807.0f)  // 自动模式
+    { 
+			Save_time_allow = YES;
+      // 发射模式切换为自控模式
+      shoot_control_mode = AUTO_MODE;		//这将会作为下面任务执行手动还是自动的判断依据
+      // 电机模式切换为位置控制
+      shoot.Sten_left.mode = POSITION;
+      shoot.Sten_right.mode = POSITION;
+      shoot.Push_dart.mode = POSITION;
+			shoot.Trigger.mode = POSITION;
 
-//     }
-// 		else // 手动模式
-//     {
-//       // 发射模式切换为手动模式
-// 			Save_time_allow = NO;
-//       shoot_control_mode = MANUAL_MODE;		//这将会作为下面任务执行手动还是自动的判断依据
-//       // 电机模式切换为速度控制
-// 			shoot.Sten_left.mode = VELOCITY;
-// 			shoot.Sten_right.mode = VELOCITY;
-// 			shoot.Push_dart.mode = VELOCITY;
-// 			shoot.Yaw_root.mode = VELOCITY;
-// 			shoot.Trigger.mode = VELOCITY;
-// //			time_table= 0;
-//     }
+    }
+		else // 手动模式
+    {
+      // 发射模式切换为手动模式
+			Save_time_allow = NO;
+      shoot_control_mode = MANUAL_MODE;		//这将会作为下面任务执行手动还是自动的判断依据
+      // 电机模式切换为速度控制
+			shoot.Sten_left.mode = VELOCITY;
+			shoot.Sten_right.mode = VELOCITY;
+			shoot.Push_dart.mode = VELOCITY;
+			shoot.Yaw_root.mode = VELOCITY;
+			shoot.Trigger.mode = VELOCITY;
+//			time_table= 0;
+    }
     osDelay(5);
   }
   /* USER CODE END Gimbal_Task */
@@ -291,8 +292,20 @@ void Chassis_Task(void *argument)
 {
   /* USER CODE BEGIN Chassis_Task */
   /* Infinite loop */
+  	shoot.Push_dart.mode = VELOCITY;
+
   for(;;)
   {
+
+    if (shoot_control_mode == MANUAL_MODE)
+    {
+      Manual_mode();
+    }
+		else if (shoot_control_mode == AUTO_MODE)
+		{
+      //Manual_auto_mode();
+		}
+
     osDelay(1);
   }
   /* USER CODE END Chassis_Task */
@@ -308,16 +321,12 @@ void Chassis_Task(void *argument)
 void Motor_control_Task(void *argument)
 {
   /* USER CODE BEGIN Motor_control_Task */
+  Fei_Bao_motor_init();
+  Shoot_init();
   /* Infinite loop */
   for(;;)
-  {
-    if (Global.Control.mode != LOCK){
-    DJIMotor_send_current(CAN_1_1);
-    DJIMotor_send_current(CAN_1_2);
-    DJIMotor_send_current(CAN_1_7);
-    DMMotor_send_ctrl(DM_CAN_1_1);}
-    if (Global.Chssis.input.reset != 1)
-      HAL_IWDG_Refresh(&hiwdg1);
+  { 
+    motor_control_task();
     // fdcanx_send_data(&hfdcan1,0x200,can_data,8);
     osDelay(1);
   }
@@ -382,7 +391,7 @@ void Log_and_debug_Task(void *argument)
   /* Infinite loop */
   for(;;)
   {
-
+    osDelay(1);
   }
   /* USER CODE END Log_and_debug_Task */
 }
