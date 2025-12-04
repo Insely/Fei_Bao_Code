@@ -19,5 +19,8 @@ extern pid_t trigger_location_pid;
 extern pid_t shoot1_speed_pid;
 extern pid_t shoot2_speed_pid;
 
+extern pid_t SyncController;
+
+
 void pid_set(pid_t *PidSet, float p_set, float i_set, float d_set, float lim_out_set, float lim_i_outset); // PID…Ë÷√
 float pid_cal(pid_t *PidGoal, float Now, float Set);                                                       // PIDº∆À„

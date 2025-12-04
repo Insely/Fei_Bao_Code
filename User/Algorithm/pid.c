@@ -1,6 +1,5 @@
 #include "math.h"
 #include "pid.h"
-
 void pid_set(pid_t *PidSet,float p_set,float i_set,float d_set,float lim_out_set,float lim_i_outset)//PIDÉèÖÃ
 {
   PidSet->p = p_set;   PidSet->i = i_set;   PidSet->d = d_set;

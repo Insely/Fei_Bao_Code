@@ -209,15 +209,15 @@ void RC_control()
 {
     if (RC_data.online >= 0)
         RC_data.online--;
-    /*控制模式选择*/
-    if ((RC_data.rc.s[0]==RC_SW_DOWN && RC_data.rc.s[1]==RC_SW_DOWN) || (RC_data.online <= 0)) // 左下右下，锁死
-        Global.Control.mode = LOCK;
-    else if (RC_data.rc.s[0]==RC_SW_UP && RC_data.rc.s[1]==RC_SW_UP) // 左上右上，键盘控制
-        Global.Control.mode = KEY;
-    else
-        Global.Control.mode = RC;
-    if (Global.Control.mode != RC)
-        return;
+    // /*控制模式选择*/
+    // if ((RC_data.rc.s[0]==RC_SW_DOWN && RC_data.rc.s[1]==RC_SW_DOWN) || (RC_data.online <= 0)) // 左下右下，锁死
+    //     Global.Control.mode = LOCK;
+    // else if (RC_data.rc.s[0]==RC_SW_UP && RC_data.rc.s[1]==RC_SW_UP) // 左上右上，键盘控制
+    //     Global.Control.mode = KEY;
+    // else
+    //     Global.Control.mode = RC;
+    // if (Global.Control.mode != RC)
+    //     return;
     
 }
 

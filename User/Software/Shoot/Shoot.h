@@ -5,7 +5,9 @@
 #include "string.h"
 #include "stdint.h"
 #include "pid.h"
+#include "math.h"
 #include "motor.h"
+#include "remote_control.h"
 #include "fei_bao_param.h"
 #include "Stm32_time.h"
 #include "stm32h7xx_hal.h"
@@ -201,6 +203,9 @@ void Shoot_set_push_dart_velocity(float Push_dart);
 void Shoot_set_yaw_root_position(float Yaw_root);
 void Shoot_set_yaw_root_velocity(float Yaw_root);
 
+float Get_Base_Current(float Target_Speed, float Current_Speed_M1, float Current_Speed_M2);
+void Motor_Control_Loop();
+float pid_sync_cal_abs(pid_t *SyncGoal, float NowSpeed1, float NowSpeed2);
 
 
 

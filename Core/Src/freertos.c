@@ -323,6 +323,7 @@ void Motor_control_Task(void *argument)
   /* USER CODE BEGIN Motor_control_Task */
   Fei_Bao_motor_init();
   Shoot_init();
+  PWM_control_init();
   /* Infinite loop */
   for(;;)
   { 

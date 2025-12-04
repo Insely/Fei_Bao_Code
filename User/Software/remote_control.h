@@ -33,7 +33,7 @@ typedef PACKED_STRUCT()
     struct
     {
         int16_t ch[4]; // 摇杆数据
-        char s[4];     // 拨杆数据
+        int16_t s[4];     // 拨杆数据
     } rc;
     struct
     {

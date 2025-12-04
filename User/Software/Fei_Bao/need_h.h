@@ -7,5 +7,8 @@
 #include "remote_control.h"
 #include "launch.h"
 #include "motor_control_task.h"
+#include "Servos.h"
+#include "reload.h"
+#include "FSI6X.h"
 
 #endif
