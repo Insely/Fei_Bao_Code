@@ -177,13 +177,13 @@ void Shoot_init()
     
     // 提示：这个函数应该在你的 main() 函数开始运行后，所有硬件初始化完成后调用。
 	
-	pid_set(&Sten_left_speed_pid_auto, 5.0f, 0.0f, 0.0f, 15000.0f, 0.0f);//单速度环下效果很好 1.5 0.15 0.3
+	pid_set(&Sten_left_speed_pid_auto, 30.0f, 0.0f, 0.0f, 15000.0f, 0.0f);//单速度环下效果很好 1.5 0.15 0.3
 	pid_set(&Sten_left_location_pid_auto,50.0f, 80.0f, 0.21f, 5000.0f, 0.0f);//50   8  0
 
-	pid_set(&Sten_right_speed_pid_auto, 5.0f, 0.0f, 0.0f, 15000.0f, 0.0f);//单速度环下效果很好
+	pid_set(&Sten_right_speed_pid_auto, 30.0f, 0.0f, 0.0f, 15000.0f, 0.0f);//单速度环下效果很好
 	pid_set(&Sten_right_location_pid_auto, 50.0f, 80.0f,0.21f, 5000.0f, 0.0f);	
 	
-	pid_set(&Trigger_speed_pid, 1.0f, 0.0f, 0.0f, 12000.0f, 0.0f);//单速度环下效果很好
+	pid_set(&Trigger_speed_pid, 10.0f, 0.0f, 0.0f, 12000.0f, 0.0f);//单速度环下效果很好
 	pid_set(&Trigger_location_pid, 100.0f, 0, 0.0f, 10000.0f, 0.0f);
 
 	pid_set(&Push_dart_speed_pid_auto, 3.0f, 0.0f, 0.8f, 12000.0f, 0.0f);//单速度环下效果很好
@@ -390,15 +390,14 @@ void Shoot_pid_cal()
 	// 右侧储能3508
 		// sten_right_val=pid_cal(&Sten_right_speed_pid_auto, get_CAN1_DJImotor_data(STEN_RIGHT).speed_rpm, shoot.Sten_right.velocity);
 		// set_CAN1_DJImotor(sten_right_val, STEN_RIGHT);
-	Motor_Control_Loop();
 	// 推镖2006
-		set_CAN1_DJImotor(pid_cal(&Push_dart_speed_pid_auto, -get_CAN1_DJImotor_data(PUSH_DART).speed_rpm, shoot.Push_dart.velocity), PUSH_DART);
+	set_CAN1_DJImotor(pid_cal(&Push_dart_speed_pid_auto, -get_CAN1_DJImotor_data(PUSH_DART).speed_rpm, shoot.Push_dart.velocity), PUSH_DART);
 
 	//扳机2006
-	  set_CAN1_DJImotor(pid_cal(&Trigger_speed_pid, -get_CAN1_DJImotor_data(TRIGGER).speed_rpm, shoot.Trigger.velocity), TRIGGER);
+	set_CAN1_DJImotor(pid_cal(&Trigger_speed_pid, -get_CAN1_DJImotor_data(TRIGGER).speed_rpm, shoot.Trigger.velocity), TRIGGER);
 
 	//Yaw轴3508
-	  set_CAN1_DJImotor(pid_cal(&Yaw_root_speed_pid, get_CAN1_DJImotor_data(YAW_ROOT).speed_rpm, shoot.Yaw_root.velocity), YAW_ROOT);
+	set_CAN1_DJImotor(pid_cal(&Yaw_root_speed_pid, get_CAN1_DJImotor_data(YAW_ROOT).speed_rpm, shoot.Yaw_root.velocity), YAW_ROOT);
 
 
 
@@ -635,12 +634,12 @@ float pid_sync_cal_abs(pid_t *SyncGoal, float NowSpeed1, float NowSpeed2)
 
 
 
-void Motor_Control_Loop() {
+void Motor_Control_Loop(int16_t set) {
     // 假设 M1 正在正转 (100.0 RPM), M2 正在反转 (-95.0 RPM)
     float M1_Speed_Actual = get_CAN1_DJImotor_data(STEN_LEFT).speed_rpm;
     float M2_Speed_Actual = get_CAN1_DJImotor_data(STEN_LEFT).speed_rpm; 
     
-    float TargetCurrent_Base = Get_Base_Current(RC_data.rc.ch[1]/30,M1_Speed_Actual,M2_Speed_Actual); 
+    float TargetCurrent_Base = Get_Base_Current(set,M1_Speed_Actual,M2_Speed_Actual); 
     
     // --- 运行同步控制器 (使用修正后的函数) ---
     // 此时 SyncOutput 根据 (fabs(100.0) - fabs(-95.0)) = 5.0 计算，得到一个正值
@@ -652,7 +651,7 @@ void Motor_Control_Loop() {
     float M1_Target_Current = TargetCurrent_Base - SyncOutput; 
     
     // M2 绝对速度较慢 (SyncOutput > 0)，需要增大电流
-    float M2_Target_Current = TargetCurrent_Base + SyncOutput; 
+    float M2_Target_Current = -(TargetCurrent_Base + SyncOutput); 
     
     // --- 发送给电机驱动 ---
 	set_CAN1_DJImotor(M1_Target_Current, STEN_LEFT);

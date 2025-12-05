@@ -132,8 +132,8 @@ void VT13toRCdata()
     /*遥控器数据*/
     RC_data.rc.ch[0] = VT13_data.rc.ch[0];
     RC_data.rc.ch[1] = VT13_data.rc.ch[1];
-    RC_data.rc.ch[2] = VT13_data.rc.ch[3];
-    RC_data.rc.ch[3] = VT13_data.rc.ch[2];
+    RC_data.rc.ch[2] = VT13_data.rc.ch[2];
+    RC_data.rc.ch[3] = VT13_data.rc.ch[3];
     if (VT13_data.rc.shutter == 1) // 扳机键与开火相对应
         RC_data.rc.ch[4] = 660;
     else
@@ -184,8 +184,8 @@ void FSI6XtoRCdata()
 { 
    RC_data.rc.ch[0]=FSI6X_data.CH1;
    RC_data.rc.ch[1]=FSI6X_data.CH2;
-   RC_data.rc.ch[2]=FSI6X_data.CH4;
-   RC_data.rc.ch[3]=FSI6X_data.CH3;
+   RC_data.rc.ch[2]=FSI6X_data.CH3;
+   RC_data.rc.ch[3]=FSI6X_data.CH4;
     RC_data.rc.s[0]=FSI6X_data.CH5;
     RC_data.rc.s[1]=FSI6X_data.CH6;
     RC_data.rc.s[2]=FSI6X_data.CH7;

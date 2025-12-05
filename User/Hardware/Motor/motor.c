@@ -14,6 +14,7 @@
 #include "string.h"
 
 #define abs(a) a > 0 ? a : -a
+    FDCAN_HandleTypeDef *hcan ;
 
 #if (USE_DJIMotor == 1)
 // 电机数据定义
@@ -82,7 +83,7 @@ void DJIMotor_get_process_motor_data(DJI_motor_data_s *ptr, uint8_t data[])
     (ptr)->ecd = (uint16_t)((data)[0] << 8 | (data)[1]);
     (ptr)->speed_rpm = (uint16_t)((data)[2] << 8 | (data)[3]);
     (ptr)->given_current = (uint16_t)((data)[4] << 8 | (data)[5]);
-    (ptr)->temperate = (data)[6];
+    //(ptr)->temperate = (data)[6];
 
     // process the data
     // count cnt
@@ -166,7 +167,6 @@ void DJIMotor_SendCurrent(DJIcan_send_id_e CAN_Send_ID , DJIcan_send_id_e CAN_Ty
     uint8_t can_send_data[8];
     uint8_t canid;
     uint16_t identifier;
-    FDCAN_HandleTypeDef *hcan ;
 
     if (hfdcan1.ErrorCode)
         HAL_FDCAN_ErrorCallback(&hfdcan1);

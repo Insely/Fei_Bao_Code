@@ -94,7 +94,7 @@ extern DMA_HandleTypeDef hdma_uart7_rx;
   * @retval int
   */
 int main(void)
-{
+ {
 
   /* USER CODE BEGIN 1 */
 
