@@ -5,5 +5,7 @@
 
 
 void Manual_mode(void);
+void Fei_Bao_motor_init(void);
+
 
 #endif

@@ -322,10 +322,12 @@ void Motor_control_Task(void *argument)
   /* USER CODE BEGIN Motor_control_Task */
   PWM_control_init();
   Shoot_init();
+  Fei_Bao_motor_init();
   save_moto_zero();
   /* Infinite loop */
   for(;;)
   { 
+  //电机控制保护
    if(RC_data.online!=-1&&RC_data.rc.s[0]!=240){ 
       enable_motor_mode(&hfdcan1,STEN_MOTO,POS_MODE);
       }

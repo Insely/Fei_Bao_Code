@@ -5,6 +5,7 @@
 
 
 void motor_control_task(void);
+void DJIMotor_Send_Task(void);
 
 
 #endif

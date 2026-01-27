@@ -135,6 +135,12 @@ void Shoot_init(void);
 void Shoot_pid_cal(void);
 void Shoot_updata(void);
 
+void Shoot_set_yaw_root_position(float Yaw_root);
+void Shoot_set_yaw_root_velocity(float Yaw_root);
+
+DJI_motor_data_s get_CAN2_DJImotor_data(DJIcan_id motorID);
+void set_CAN2_DJImotor(int16_t val, DJIcan_id motorID); // 设定马达电流
+
 
 
 #endif

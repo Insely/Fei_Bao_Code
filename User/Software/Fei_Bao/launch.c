@@ -1,5 +1,11 @@
 #include "launch.h"
 
+void Fei_Bao_motor_init(void){
+
+    DJIMotor_init(DJI_M3508,YAW_ROOT);
+
+}
+
 
 
 void Manual_mode(void){
@@ -8,6 +14,8 @@ void Manual_mode(void){
     static int x=1;
     static double p_angle=0.0;
     static uint8_t Moto_state=0;
+
+    //储能电机10010L控制
     if(RC_data.rc.ch[1]>200){
         p_angle=100;
         Moto_state=0;
@@ -25,6 +33,13 @@ void Manual_mode(void){
     }
     sten_moto_ctrl(p_angle,2);
 
+    if(RC_data.rc.s[3]<250.0f) n+=1;
+    if(RC_data.rc.s[1] >1800.0f && n==x) {
+        save_moto_zero(); 
+        x+=1;
+    }
+
+    //板机发射控制
     if(RC_data.rc.s[1] >1800.0f){
 
         Trigger_down();
@@ -36,9 +51,7 @@ void Manual_mode(void){
 
     }
 
-    if(RC_data.rc.s[3]<250.0f) n+=1;
-    if(RC_data.rc.s[1] >1800.0f && n==x) {
-        save_moto_zero(); 
-        x+=1;
-    }
+    //YAW轴电机控制
+    Shoot_set_yaw_root_velocity(RC_data.rc.ch[3]/4);
+
 }

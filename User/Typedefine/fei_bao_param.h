@@ -12,5 +12,7 @@
 
 #define STEN_MOTO 0x01 //can_1_1
 
+#define YAW_ROOT CAN_2_1
+
 
 #endif
