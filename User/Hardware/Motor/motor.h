@@ -113,6 +113,10 @@ typedef struct
     double angle_zero;  // 编码器0点角度 degree
     double angle;       // -180~180 degree
     double round_speed; // 出轴转速 rpm
+
+    // --- 新增: 初始化标志位 ---
+    uint8_t msg_cnt; // 用于记录收到数据的次数，或者仅作为bool标志位
+
 } DJI_motor_data_s;
 
 void DJIMotor_init(Motor_Type_e motor_type, DJIcan_id motor_id);

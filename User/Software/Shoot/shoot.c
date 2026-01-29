@@ -5,7 +5,6 @@
 
 float Count_dart=0.0f;          //发射飞镖计数
 
-
 int push_dart = 1;
 
 //修改位置
@@ -59,6 +58,8 @@ int Refree_open_time=0;              //裁判系统舱门开启次数
 
 pid_t Yaw_root_speed_pid;
 pid_t Yaw_root_location_pid;
+pid_t Trigger_speed_pid;
+pid_t Trigger_location_pid;
 
 struct shoot_status shoot;
 
@@ -69,12 +70,14 @@ void Shoot_init()
     pid_set(&Yaw_root_speed_pid, 3.0f, 0.1f, 0.3f, 20000.0f, 0.0f);//单速度环下效果很好
 	pid_set(&Yaw_root_location_pid, 20.0f, 0.0f, 0.0f, 10000.0f, 0.0f);	////需测试
 
-    	
+    pid_set(&Trigger_speed_pid, 20.0f, 0.1f, 0.0f, 12000.0f, 0.0f);//单速度环下效果很好
+	pid_set(&Trigger_location_pid, 1.5f, 0.2f, 0.0f, 10000.0f, 0.0f);
+
 	// yaw轴3508	
 	shoot.Yaw_root.Last_position = 0;
 	shoot.Yaw_root.Now_position = 0;
 	shoot.Yaw_root.Set_position = 0;
-//	shoot.Yaw_root.Set_zero_piont = get_CAN1_DJImotor_data(CAN_1_5).angle_cnt;
+//	shoot.Yaw_root.Set_zero_piont = gget_CAN2_DJImotor_data(CAN_1_5).angle_cnt;
 	shoot.Yaw_root.Set_zero_piont = 0;
 	shoot.Yaw_root.position = 0;
 
@@ -85,6 +88,20 @@ void Shoot_init()
 	shoot.Yaw_root.velocity = 0;
 	shoot.Yaw_root.mode = VELOCITY;	
 
+    // 扳机2006
+	shoot.Trigger.Last_position = 0;
+	shoot.Trigger.Now_position = 0;
+	shoot.Trigger.Set_position = 0;
+	//shoot.Trigger.Set_zero_piont = get_CAN2_DJImotor_data(TRIGGER).angle_cnt;
+	shoot.Trigger.Set_zero_piont = 0;
+	shoot.Trigger.position = 0;
+
+	shoot.Trigger.Last_velocity = 0;
+	shoot.Trigger.Now_velocity = 0;
+	shoot.Trigger.Last_velocity = 0;
+	shoot.Trigger.Set_velocity = 0;
+	shoot.Trigger.velocity = 0;
+	shoot.Trigger.mode = POSITION;
 
 }
 
@@ -93,8 +110,12 @@ void Shoot_init()
 void Shoot_updata()
 {
     // Yaw轴3508更新
-	shoot.Yaw_root.Now_position = get_CAN2_DJImotor_data(YAW_ROOT).angle_cnt - shoot.Yaw_root.Set_zero_piont;
+	shoot.Yaw_root.Now_position = get_CAN2_DJImotor_data(YAW_ROOT).angle_cnt;
 	shoot.Yaw_root.Now_velocity = get_CAN2_DJImotor_data(YAW_ROOT).round_speed;
+
+    // 扳机2006更新
+	shoot.Trigger.Now_position = get_CAN2_DJImotor_data(TRIGGER).angle_cnt;
+	shoot.Trigger.Now_velocity = get_CAN2_DJImotor_data(TRIGGER).round_speed;
 
 }
 
@@ -108,6 +129,16 @@ void Shoot_set_yaw_root_velocity(float Yaw_root)
 {
 	shoot.Yaw_root.Set_velocity = Yaw_root;
 }
+// 设置扳机2006角度
+void Shoot_set_sten_trigger_position(float Sten_trigger)
+{
+	shoot.Trigger.Set_position = Sten_trigger;
+}
+// 设置扳机2006速度
+void Shoot_set_sten_trigger_velocity(float Sten_trigger)
+{
+	shoot.Trigger.Set_velocity = Sten_trigger;
+}
 
 // pid计算
 void Shoot_pid_cal()
@@ -117,20 +148,28 @@ void Shoot_pid_cal()
 	else
 	shoot.Yaw_root.velocity = shoot.Yaw_root.Set_velocity;	
 
+    if (shoot.Trigger.mode == POSITION)
+	shoot.Trigger.velocity = pid_cal(&Trigger_location_pid, shoot.Trigger.Now_position, shoot.Trigger.Set_position)/50;
+	else
+	shoot.Trigger.velocity = shoot.Trigger.Set_velocity;
+
+
     //Yaw轴3508
 	set_CAN2_DJImotor(pid_cal(&Yaw_root_speed_pid, get_CAN2_DJImotor_data(YAW_ROOT).round_speed, shoot.Yaw_root.velocity), YAW_ROOT);
+	//扳机2006
+	set_CAN2_DJImotor(pid_cal(&Trigger_speed_pid, get_CAN2_DJImotor_data(TRIGGER).round_speed, shoot.Trigger.velocity), TRIGGER);
 
 }
 
 DJI_motor_data_s get_CAN2_DJImotor_data(DJIcan_id motorID){
 
-  return DJIMotor_data[1][motorID];
+  return DJIMotor_data[1][motorID%11];
 
 }
 
 
 void set_CAN2_DJImotor(int16_t val, DJIcan_id motorID) // 设定马达电流
 {
-  DJIMotor_data[1][motorID].set = val; // val
+  DJIMotor_data[1][motorID%11].set = val; // val
 }
 

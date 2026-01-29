@@ -79,8 +79,32 @@ DJI_motor_data_s DJIMotor_get_data(DJIcan_id motor_id) // 获取马达数据
 void DJIMotor_get_process_motor_data(DJI_motor_data_s *ptr, uint8_t data[])
 {
     // get raw data
-    (ptr)->last_ecd = (ptr)->ecd;
-    (ptr)->ecd = (uint16_t)((data)[0] << 8 | (data)[1]);
+    //(ptr)->last_ecd = (ptr)->ecd;
+    //(ptr)->ecd = (uint16_t)((data)[0] << 8 | (data)[1]);
+    
+    // 1. 临时保存当前的编码器值（先不赋值给 ptr->ecd，便于后续逻辑处理）
+    uint16_t current_ecd = (uint16_t)((data)[0] << 8 | (data)[1]);
+    // 2. 关键修改：如果是刚上电（第一次收到数据）
+    if (ptr->msg_cnt == 0) 
+    {
+        // 将 last_ecd 设为和当前 ecd 一样，这样稍后计算差值时就是 0
+        ptr->last_ecd = current_ecd; 
+        ptr->ecd = current_ecd;
+        
+        // 强制归零计数器
+        ptr->ecd_cnt = 0;
+        ptr->angle_cnt = 0;
+        
+        // 标记已初始化
+        ptr->msg_cnt = 1; 
+    }
+    else 
+    {
+        // 不是第一次，正常更新 last_ecd
+        ptr->last_ecd = ptr->ecd;
+        ptr->ecd = current_ecd;
+    }
+
     (ptr)->speed_rpm = (uint16_t)((data)[2] << 8 | (data)[3]);
     (ptr)->given_current = (uint16_t)((data)[4] << 8 | (data)[5]);
     //(ptr)->temperate = (data)[6];
