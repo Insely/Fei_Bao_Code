@@ -18,6 +18,7 @@
 #include "main.h"
 #include "usart.h"
 #include "struct_typedef.h"
+#include "Auto_control.h"
 
 #define UART_BUFFER_SIZE 256//串口缓冲区大小
 //串口数据结构体
@@ -36,6 +37,7 @@ extern transmit_data UART7_data;
 extern transmit_data UART10_data;
 extern transmit_data UART1_data;
 
+extern VisionData vision_data;
 //外部调用
 void uart_init(void);                                                                                                                         //初始化
 void UART_DMA_rxtx_start(transmit_data *data, UART_HandleTypeDef *huart, DMA_HandleTypeDef *hdma_usart_rx, DMA_HandleTypeDef *hdma_usart_tx); //初始化                                                                                               //接受中断

@@ -48,10 +48,19 @@ typedef struct
     } FrameTailer;
 } MINIPC_data_t;
 
+// 上位机发送的数据结构 (VisionData)
+// 必须确保与视觉端的结构体定义完全一致
+typedef struct __attribute__((packed)) {
+    uint8_t  header;        // 帧头 0xA5
+    float    yaw_error;     // 水平偏差
+    uint8_t  at_center;     // 是否到达中心
+    uint8_t  allow_fire;    // 是否允许发射
+} VisionData; 
+
 #pragma pack(4)
 
 void STM32_to_MINIPC(float yaw,float pitch,float omega);
-void decodeMINIPCdata(MINIPC_data_t *target, unsigned char buff[], unsigned int len);
+void decodeMINIPCdata(VisionData *target, uint8_t *buff, uint16_t len);
 void Auto_control();
 void MINIPC_to_STM32();
 

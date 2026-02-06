@@ -15,9 +15,21 @@ MINIPC_data_t fromMINIPC;
 uint8_t data[128];
 uint8_t rx_data[100];
 
-void decodeMINIPCdata(MINIPC_data_t *target, unsigned char buff[], unsigned int len)
+void decodeMINIPCdata(VisionData *target, uint8_t *buff, uint16_t len)
 {
-    memcpy(target, buff, len);
+    // 1. 长度检查：结构体现在是 7 字节
+    if (len < sizeof(VisionData)) return;
+
+    // 2. 搜帧逻辑：在整个收到的包里找 0xA5
+    for (int i = 0; i <= (len - sizeof(VisionData)); i++) 
+    {
+        if (buff[i] == 0xA5) 
+        {
+            // 找到帧头后，把后续数据拷贝进结构体
+            memcpy(target, &buff[i], sizeof(VisionData));
+            break; // 解码完成
+        }
+    }
 }
 
 int encodeSTM32(STM32_data_t *target, unsigned char tx_buff[], unsigned int len)

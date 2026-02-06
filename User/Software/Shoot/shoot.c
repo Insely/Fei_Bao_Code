@@ -71,7 +71,7 @@ void Shoot_init()
 	pid_set(&Yaw_root_location_pid, 20.0f, 0.0f, 0.0f, 10000.0f, 0.0f);	////需测试
 
     pid_set(&Trigger_speed_pid, 20.0f, 0.1f, 0.0f, 12000.0f, 0.0f);//单速度环下效果很好
-	pid_set(&Trigger_location_pid, 1.5f, 0.2f, 0.0f, 10000.0f, 0.0f);
+	pid_set(&Trigger_location_pid, 2.0f, 0.2f, 0.0f, 10000.0f, 0.0f);
 
 	// yaw轴3508	
 	shoot.Yaw_root.Last_position = 0;

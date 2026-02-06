@@ -10,5 +10,7 @@
 #include "Servos.h"
 #include "reload.h"
 #include "FSI6X.h"
+#include "Auto_control.h"
+#include "UART_data_txrx.h"
 
 #endif

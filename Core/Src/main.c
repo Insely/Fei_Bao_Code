@@ -147,6 +147,7 @@ int main(void)
   uart_init();
   can_init();
   Refree_system_init();
+  Buzzer_init();
 
   IMU_init();
   Music_init();

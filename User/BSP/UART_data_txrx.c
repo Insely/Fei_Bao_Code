@@ -48,6 +48,7 @@ extern UART_HandleTypeDef huart7;
 extern UART_HandleTypeDef huart10;
 
 // 将上述串口+DMA整合，并包含缓冲区
+VisionData vision_data;
 transmit_data UART1_data;
 transmit_data UART2_data;
 transmit_data UART3_data;
@@ -114,11 +115,12 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
   {
   case (uintptr_t)USART1: // 自瞄数据
   {
-    if (UART1_data.rev_data[0] == 0xA5) // 帧头校验
-    {
-      Global.Auto.input.Auto_control_online = 20; // 更新在线状态
-      decodeMINIPCdata(&fromMINIPC, UART1_data.rev_data, Size);
-      MINIPC_to_STM32();
+    // 使用新的解码逻辑，不再只看 rev_data[0]
+    // 假设 Size 是 HAL_UARTEx_RxEventCallback 传进来的接收长度
+    decodeMINIPCdata(&vision_data, UART1_data.rev_data, Size);
+    
+    if (vision_data.header == 0xA5) {
+        Global.Auto.input.Auto_control_online = 20; 
     }
 
     // 重新启动DMA接收

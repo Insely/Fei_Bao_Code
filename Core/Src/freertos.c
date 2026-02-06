@@ -44,6 +44,9 @@
 #include "fei_bao_param.h"
 #include "need_h.h"
 #include <cmsis_os2.h>
+#include "usart.h"
+#include "UART_data_txrx.h"
+
 
 #include "iwdg.h"
 #include "buzzer.h"
@@ -251,7 +254,7 @@ void Gimbal_Task(void *argument)
   /* Infinite loop */
   for(;;)
   {
-    		if ((RC_data.rc.s[2] ==1024.0f&&(RC_data.rc.s[0] == 1807.0f||RC_data.rc.s[1]==1807.0f||RC_data.rc.s[3]==1807.0f))||RC_data.rc.s[2]==1807.0f)  // 自动模式
+    		if (RC_data.rc.s[3]==1807.0f)  // 自动模式
     { 
 			Save_time_allow = YES;
       // 发射模式切换为自控模式
@@ -328,20 +331,20 @@ void Motor_control_Task(void *argument)
   for(;;)
   { 
   //电机控制保护
-  if(RC_data.online!=-1&&RC_data.rc.s[0]!=240){ 
+  if(RC_data.online!=-1&&RC_data.rc.s[0]!=240){
       enable_motor_mode(&hfdcan1,STEN_MOTO,POS_MODE);
       motor_control_task();
       }
-  else{      
+  else{
       set_CAN2_DJImotor(0, YAW_ROOT); // 设定马达电流
       set_CAN2_DJImotor(0, TRIGGER); // 设定马达电流
       DJIMotor_SendCurrent (CAN_20063508_1_4_ID , DJI_CAN_2); 
       disable_motor_mode(&hfdcan1,STEN_MOTO,POS_MODE);
       }
-    
+  }
     // fdcanx_send_data(&hfdcan1,0x200,can_data,8);
     osDelay(1);
-  }
+  
   /* USER CODE END Motor_control_Task */
 }
 
@@ -358,8 +361,10 @@ void Shoot_Task(void *argument)
   /* Infinite loop */
   for(;;)
   {
+    // fdcanx_send_data(&hfdcan1,0x200,can_data,8);
+
     HAL_IWDG_Refresh(&hiwdg1);
-    osDelay(5);
+    osDelay(10);
   }
   /* USER CODE END Shoot_Task */
 }

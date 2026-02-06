@@ -3,7 +3,7 @@
 
 #include "need_h.h"
 
-
+void vision(int MIN_SPEED,int MAX_SPEED,int ERROR_SPEED);
 void Manual_mode(void);
 void Fei_Bao_motor_init(void);
 
