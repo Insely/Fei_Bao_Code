@@ -15,4 +15,8 @@
 #define YAW_ROOT CAN_2_1
 #define TRIGGER CAN_2_2
 
+#define MID_MOTO LZ_CAN_3_1
+#define LEFT_MOTO LZ_CAN_3_2
+#define RIGHT_MOTO LZ_CAN_3_3
+
 #endif

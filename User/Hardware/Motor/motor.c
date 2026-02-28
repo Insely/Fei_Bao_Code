@@ -448,39 +448,31 @@ DM_motor_data_s DMMotor_get_data(DMcan_id motor_id) // 获取马达数据
 LZ_Motor_t LZ_Motors[QUANTITY_OF_CAN][QUANTITY_OF_LZMOTOR];
 
 /**
- * @brief 初始化灵足电机
- */
-void LZMotor_init(LZ_Motor_ID_t motor_id) {
-    if (motor_id >= LZ_MOTOR_NUM) return;
-
-    uint8_t cantype = motor_id / 6; // 获得电机所在can路
-    uint8_t canid = motor_id % 6;   // 得到电机ID值；
-
-    memset(&LZ_Motors[cantype][canid], 0, sizeof(LZ_Motor_t));
-    
-    // 设置默认ID
-    LZ_Motors[cantype][canid].id = canid + 1;
-    LZ_Motors[cantype][canid].master_id = DEFAULT_MASTER_ID;
-    
-    // 设置默认模式
-    LZ_Motors[cantype][canid].mode = LZ_MODE_MIT;
-
-    LZMotor_enable(motor_id);
-}
-
-/**
  * @brief 使能灵足电机
  */
-void LZMotor_enable(LZ_Motor_ID_t motor_id) {
+void  LZMotor_velocity_enable(LZ_Motor_ID_t motor_id) {
+    if (motor_id >= LZ_MOTOR_NUM) return;
+    
+    uint8_t cantype = motor_id / 6; // 获得电机所在can路
+    uint8_t canid = motor_id % 6;   // 得到电机ID值；
+
+    lz_set_mode(cantype, LZ_Motors[cantype][canid].id, LZ_MODE_VELOCITY);
+    lz_enable_motor(cantype, LZ_Motors[cantype][canid].id);
+  
+    LZ_Motors[cantype][canid].mode = LZ_MODE_VELOCITY; // 默认使能后进入速度模式
+
+}
+
+void  LZMotor_position_enable(LZ_Motor_ID_t motor_id) {
     if (motor_id >= LZ_MOTOR_NUM) return;
     
     uint8_t cantype = motor_id / 6; // 获得电机所在can路
     uint8_t canid = motor_id % 6;   // 得到电机ID值；
     
+    lz_set_mode(cantype, LZ_Motors[cantype][canid].id, LZ_MODE_POSITION);
     lz_enable_motor(cantype, LZ_Motors[cantype][canid].id);
-    LZ_Motors[cantype][canid].mode = LZ_MODE_MIT; // 默认使能后进入MIT模式
+    LZ_Motors[cantype][canid].mode = LZ_MODE_POSITION; // 默认使能后进入位置模式
 }
-
 /**
  * @brief 失能灵足电机
  */
@@ -495,30 +487,64 @@ void LZMotor_disable(LZ_Motor_ID_t motor_id) {
 }
 
 /**
- * @brief 设置灵足电机控制模式
+ * @brief 初始化灵足电机
  */
-void LZMotor_set_mode(LZ_Motor_ID_t motor_id, LZ_Mode_t mode) {
+void LZMotor_velocity_init(LZ_Motor_ID_t motor_id) {
     if (motor_id >= LZ_MOTOR_NUM) return;
-    
+
     uint8_t cantype = motor_id / 6; // 获得电机所在can路
     uint8_t canid = motor_id % 6;   // 得到电机ID值；
+
+    memset(&LZ_Motors[cantype][canid], 0, sizeof(LZ_Motor_t));
     
-    uint8_t mode_val;
-    switch (mode) {
-        case LZ_MODE_MIT: mode_val = 0; break;
-        case LZ_MODE_POSITION: mode_val = 1; break;
-        case LZ_MODE_VELOCITY: mode_val = 2; break;
-        default: return;
-    }
+    // 设置默认ID
+    LZ_Motors[cantype][canid].id = canid + 1;
+    LZ_Motors[cantype][canid].master_id = DEFAULT_MASTER_ID;
+    LZ_Motors[cantype][canid].mode = LZ_MODE_VELOCITY;
+
+    // 使能电机
+    LZMotor_velocity_enable(motor_id);
+}
+
+void LZMotor_position_init(LZ_Motor_ID_t motor_id) {
+    if (motor_id >= LZ_MOTOR_NUM) return;
+
+    uint8_t cantype = motor_id / 6; // 获得电机所在can路
+    uint8_t canid = motor_id % 6;   // 得到电机ID值；
+
+    memset(&LZ_Motors[cantype][canid], 0, sizeof(LZ_Motor_t));
     
-    lz_set_mode(cantype, LZ_Motors[cantype][canid].id, mode_val);
-    LZ_Motors[cantype][canid].mode = mode;
+    // 设置默认ID
+    LZ_Motors[cantype][canid].id = canid + 1;
+    LZ_Motors[cantype][canid].master_id = DEFAULT_MASTER_ID;
+    LZ_Motors[cantype][canid].mode = LZ_MODE_POSITION;
+
+    // 使能电机
+    LZMotor_position_enable(motor_id);
+}
+
+void LZMotor_init(LZ_Motor_ID_t motor_id) {
+    if (motor_id >= LZ_MOTOR_NUM) return;
+
+    uint8_t cantype = motor_id / 6; // 获得电机所在can路
+    uint8_t canid = motor_id % 6;   // 得到电机ID值；
+
+    memset(&LZ_Motors[cantype][canid], 0, sizeof(LZ_Motor_t));
+    
+    // 设置默认ID
+    LZ_Motors[cantype][canid].id = canid + 1;
+    LZ_Motors[cantype][canid].master_id = DEFAULT_MASTER_ID;
+    LZ_Motors[cantype][canid].mode = LZ_MODE_MIT;
+
+    // 使能电机
+    LZMotor_velocity_enable(motor_id);
 }
 
 /**
  * @brief 设置灵足电机控制参数
  */
-void LZMotor_set_params(LZ_Motor_ID_t motor_id, float pos, float vel, float tor, float kp, float kd, float current_limit) {
+void LZMotor_set_params(LZ_Motor_ID_t motor_id, float pos, float vel, float tor, float kp, float kd) 
+{
     if (motor_id >= LZ_MOTOR_NUM) return;
     
     uint8_t cantype = motor_id / 6; // 获得电机所在can路
@@ -529,79 +555,99 @@ void LZMotor_set_params(LZ_Motor_ID_t motor_id, float pos, float vel, float tor,
     LZ_Motors[cantype][canid].tor_set = tor;
     LZ_Motors[cantype][canid].kp_set = kp;
     LZ_Motors[cantype][canid].kd_set = kd;
-    LZ_Motors[cantype][canid].current_limit = current_limit;
 }
 
-/**
- * @brief 发送灵足电机控制命令
- */
-void LZMotor_send_command(LZ_Motor_ID_t motor_id) {
+void LZMotor_set_pos_param(LZ_Motor_ID_t motor_id, float pos, float vel) 
+{
     if (motor_id >= LZ_MOTOR_NUM) return;
     
     uint8_t cantype = motor_id / 6; // 获得电机所在can路
     uint8_t canid = motor_id % 6;   // 得到电机ID值；
     
-    LZ_Motor_t *motor = &LZ_Motors[cantype][canid];
+    LZ_Motors[cantype][canid].pos_set = pos;
+    LZ_Motors[cantype][canid].vel_set = vel;
+}
+void LZMotor_set_vel_param(LZ_Motor_ID_t motor_id, float vel,float current_limit) 
+{
+    if (motor_id >= LZ_MOTOR_NUM) return;
     
-    switch (motor->mode) {
-        case LZ_MODE_MIT:
-            lz_send_mit_params(cantype, motor->id, motor->pos_set, motor->vel_set, 
-                              motor->kp_set, motor->kd_set, motor->tor_set);
-            break;
-            
-        case LZ_MODE_POSITION:
-            lz_set_position(cantype, motor->id, motor->pos_set, motor->vel_set);
-            break;
-            
-        case LZ_MODE_VELOCITY:
-            lz_set_velocity(cantype, motor->id, motor->vel_set, motor->current_limit);
-            break;
-            
-        default:
-            // 其他模式不发送控制命令
-            break;
+    uint8_t cantype = motor_id / 6; // 获得电机所在can路
+    uint8_t canid = motor_id % 6;   // 得到电机ID值；
+    
+    LZ_Motors[cantype][canid].vel_set = vel;
+    LZ_Motors[cantype][canid].current_limit = current_limit;
+}
+/**
+ * @brief 发送灵足电机控制命令
+ */
+int LZMotor_send_command(LZ_Motor_ID_t motor_id) {
+    if (motor_id >= LZ_MOTOR_NUM) 
+        return 0;
+    
+    uint8_t cantype = motor_id / 6; // 获得电机所在can路
+    uint8_t canid = motor_id % 6;   // 得到电机ID值；
+    
+    LZ_Motor_t *motor = &LZ_Motors[cantype][canid];
+    if (motor->mode == LZ_MODE_VELOCITY) {
+        uint16_t  vel_id=(0x02 << 8) | (canid+1);
+        lz_set_velocity(cantype, vel_id, motor->vel_set, 10);
+        return 1;
+    } else if (motor->mode == LZ_MODE_POSITION) {
+        uint16_t  pos_id=(0x01 << 8) | (canid+1);
+        lz_set_position(cantype, pos_id, motor->pos_set, motor->vel_set);
+        return 1;
+    } 
+    else
+    {
+        lz_send_mit_params(cantype, motor->id, motor->pos_set, motor->vel_set, motor->kp_set, motor->kd_set, motor->tor_set);
+        return 1;
+        /* code */
     }
+    
 }
 
 /**
  * @brief 获取电机对象指针
  */
-LZ_Motor_t* LZMotor_get(LZ_Motor_ID_t motor_id) {
-    if (motor_id >= LZ_MOTOR_NUM) return NULL;
+LZ_Motor_t LZMotor_get(LZ_Motor_ID_t motor_id) {
     
     uint8_t cantype = motor_id / 6; // 获得电机所在can路
     uint8_t canid = motor_id % 6;   // 得到电机ID值；
     
-    return &LZ_Motors[cantype][canid];
+    return LZ_Motors[cantype][canid];
 }
-
 /**
  * @brief 灵足电机CAN数据处理
  */
-void LZMotor_decode_candata(FDCAN_HandleTypeDef *hfdcan, uint32_t id, uint8_t *data) {
-    // 根据说明书，MIT协议反馈帧的ID格式为 (电机ID << 8) | 主机ID
-    uint8_t motor_id = (id >> 8) & 0xFF;
-    uint8_t master_id = id & 0xFF;
+void LZMotor_decode_candata(FDCAN_HandleTypeDef *hfdcan, uint32_t id, uint8_t *data)
+ {
+    if (data[0] < 1 || data[0] > QUANTITY_OF_LZMOTOR)
+        return;
+
+    uint8_t motor_id = (data[0] - 1);
     
     // 确定CAN总线
     uint8_t can_bus = 0;
     if (hfdcan == &hfdcan2) can_bus = 1;
     else if (hfdcan == &hfdcan3) can_bus = 2;
+
+    LZ_Motors[can_bus][motor_id].state.angle_last = LZ_Motors[can_bus][motor_id].state.angle;
+    LZ_Motors[can_bus][motor_id].state.angle = uint16_to_float((data[1]<<8) | (data[2]),P_MIN,P_MAX,16);
+    LZ_Motors[can_bus][motor_id].state.velocity = uint16_to_float((data[3]<<4) | (data[4]>>4),V_MIN,V_MAX,12);
+    LZ_Motors[can_bus][motor_id].state.torque = uint16_to_float((data[4]<<8) | (data[5]),T_MIN,T_MAX,12);
+    LZ_Motors[can_bus][motor_id].state.temperature = ((data[6]<<8) | data[7])*0.1;
     
-    // 查找对应的电机
-    for (int i = 0; i < MOTORS_PER_CAN; i++) {
-        if (LZ_Motors[can_bus][i].id == motor_id && LZ_Motors[can_bus][i].master_id == master_id) {
-            // 解析反馈数据（根据说明书中的通信类型2格式）
-            // 这里需要根据实际反馈数据格式进行解析
-            // 示例代码，实际应根据说明书调整
-            LZ_Motors[can_bus][i].state.angle = uint_to_float_LZ((data[0] << 8) | data[1], P_MIN, P_MAX, 16);
-            LZ_Motors[can_bus][i].state.velocity = uint_to_float_LZ((data[2] << 4) | (data[3] >> 4), V_MIN, V_MAX, 12);
-            LZ_Motors[can_bus][i].state.torque = uint_to_float_LZ(((data[3] & 0x0F) << 8) | data[4], T_MIN, T_MAX, 12);
-            LZ_Motors[can_bus][i].state.temperature = data[5] * 0.1f; // 假设温度数据在data[5]
-            break;
-        }
-    }
-}
+    //数据处理
+        // count cnt
+    if(LZ_Motors[can_bus][motor_id].state.sign == 0) {LZ_Motors[can_bus][motor_id].state.sign ++ ; LZ_Motors[can_bus][motor_id].state.angle_last = LZ_Motors[can_bus][motor_id].state.angle;}
+    if (LZ_Motors[can_bus][motor_id].state.angle_last > 12 && LZ_Motors[can_bus][motor_id].state.angle < -12)
+        LZ_Motors[can_bus][motor_id].state.angle_cnt += ((P_MAX - LZ_Motors[can_bus][motor_id].state.angle_last) + (LZ_Motors[can_bus][motor_id].state.angle + P_MAX));
+    else if (LZ_Motors[can_bus][motor_id].state.angle_last < -12 && LZ_Motors[can_bus][motor_id].state.angle > 12)
+        LZ_Motors[can_bus][motor_id].state.angle_cnt -= ((P_MAX - LZ_Motors[can_bus][motor_id].state.angle) + LZ_Motors[can_bus][motor_id].state.angle_last + P_MAX);
+    else
+        LZ_Motors[can_bus][motor_id].state.angle_cnt += (LZ_Motors[can_bus][motor_id].state.angle - LZ_Motors[can_bus][motor_id].state.angle_last);
+ }
+
 
 
 #endif // USE_LZMotor

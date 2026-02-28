@@ -70,9 +70,9 @@
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
 uint32_t color = 0;
+enum shoot_control shoot_control_mode;
 /* USER CODE END Variables */
 /* Definitions for Remote_control */
-enum shoot_control shoot_control_mode;
 osThreadId_t Remote_controlHandle;
 const osThreadAttr_t Remote_control_attributes = {
   .name = "Remote_control",
@@ -254,24 +254,24 @@ void Gimbal_Task(void *argument)
   /* Infinite loop */
   for(;;)
   {
-    		if (RC_data.rc.s[3]==1807.0f)  // 自动模式
+    		if (RC_data.rc.s[3]==1807.0f)  // ?????
     { 
 			Save_time_allow = YES;
-      // 发射模式切换为自控模式
-      shoot_control_mode = AUTO_MODE;		//这将会作为下面任务执行手动还是自动的判断依据
-      // 电机模式切换为位置控制
+      // ????????????????
+      shoot_control_mode = AUTO_MODE;		//??????????????????????????????????????
+      // ?????????????????
       shoot.Sten_left.mode = POSITION;
       shoot.Sten_right.mode = POSITION;
       shoot.Push_dart.mode = POSITION;
 			shoot.Trigger.mode = POSITION;
 
     }
-		else // 手动模式
+		else // ?????
     {
-      // 发射模式切换为手动模式
+      // ????????????????
 			Save_time_allow = NO;
-      shoot_control_mode = MANUAL_MODE;		//这将会作为下面任务执行手动还是自动的判断依据
-      // 电机模式切换为速度控制
+      shoot_control_mode = MANUAL_MODE;		//??????????????????????????????????????
+      // ????????????????
 			shoot.Sten_left.mode = VELOCITY;
 			shoot.Sten_right.mode = VELOCITY;
 			shoot.Push_dart.mode = VELOCITY;
@@ -298,14 +298,15 @@ void Chassis_Task(void *argument)
 
   for(;;)
   {
-
+    test();
+     
     if (shoot_control_mode == MANUAL_MODE)
     {
       Manual_mode();
     }
 		else if (shoot_control_mode == AUTO_MODE)
 		{
-    
+      Auto_mode();
 		}
 
     osDelay(1);
@@ -330,20 +331,25 @@ void Motor_control_Task(void *argument)
   /* Infinite loop */
   for(;;)
   { 
-  //电机控制保护
+  LZMotor_send_command(MID_MOTO);
+  LZMotor_send_command(LEFT_MOTO);
+  osDelay(2);
+  LZMotor_send_command(RIGHT_MOTO);
+  //??????????
   if(RC_data.online!=-1&&RC_data.rc.s[0]!=240){
       enable_motor_mode(&hfdcan1,STEN_MOTO,POS_MODE);
       motor_control_task();
       }
   else{
-      set_CAN2_DJImotor(0, YAW_ROOT); // 设定马达电流
-      set_CAN2_DJImotor(0, TRIGGER); // 设定马达电流
+      set_CAN2_DJImotor(0, YAW_ROOT); // ?????????
+      set_CAN2_DJImotor(0, TRIGGER); // ?????????
       DJIMotor_SendCurrent (CAN_20063508_1_4_ID , DJI_CAN_2); 
       disable_motor_mode(&hfdcan1,STEN_MOTO,POS_MODE);
-      }
+      }    
+  osDelay(1);
+
   }
     // fdcanx_send_data(&hfdcan1,0x200,can_data,8);
-    osDelay(1);
   
   /* USER CODE END Motor_control_Task */
 }
@@ -357,7 +363,7 @@ void Motor_control_Task(void *argument)
 /* USER CODE END Header_Shoot_Task */
 void Shoot_Task(void *argument)
 {
-  /* USER CODE BEGIN Shoot_Task */ 
+  /* USER CODE BEGIN Shoot_Task */
   /* Infinite loop */
   for(;;)
   {
@@ -399,15 +405,16 @@ void Referee_Task(void *argument)
 void Log_and_debug_Task(void *argument)
 {
   /* USER CODE BEGIN Log_and_debug_Task */
+
+  /* Infinite loop */
+  for(;;)
+  {
   LEDshowcolor(RED);
   osDelay(500);
   LEDshowcolor(BLUE);
   osDelay(500);
   LEDshowcolor(GREEN);
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
+  osDelay(500);
   }
   /* USER CODE END Log_and_debug_Task */
 }

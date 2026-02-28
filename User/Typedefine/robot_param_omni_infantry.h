@@ -19,7 +19,7 @@
 //电机类型选择  （0不使用  1使用）
 #define USE_DJIMotor (1)   //大疆电机
 #define USE_DMMotor  (1)   //达妙电机
-#define USE_LZMotor  (0)   //灵足电机
+#define USE_LZMotor  (1)   //灵足电机
 
 
 

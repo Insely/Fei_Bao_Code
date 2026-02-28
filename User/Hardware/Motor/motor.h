@@ -222,16 +222,26 @@ typedef enum {
 } LZ_Motor_ID_t;
 
 void LZMotor_init(LZ_Motor_ID_t motor_id);
-void LZMotor_enable(LZ_Motor_ID_t motor_id);
-void LZMotor_disable(LZ_Motor_ID_t motor_id);
-void LZMotor_set_mode(LZ_Motor_ID_t motor_id, LZ_Mode_t mode);
-void LZMotor_set_params(LZ_Motor_ID_t motor_id, float pos, float vel, float tor, float kp, float kd, float current_limit);
-void LZMotor_send_command(LZ_Motor_ID_t motor_id);
+void LZMotor_velocity_init(LZ_Motor_ID_t motor_id) ;
+void LZMotor_position_init(LZ_Motor_ID_t motor_id) ;
+
+void LZMotor_set_params(LZ_Motor_ID_t motor_id, float pos, float vel, float tor, float kp, float kd);
+void LZMotor_set_pos_param(LZ_Motor_ID_t motor_id, float pos, float vel) ;
+void LZMotor_set_vel_param(LZ_Motor_ID_t motor_id, float vel,float current_limit) ;
+
+void LZMotor_velocity_enable(LZ_Motor_ID_t motor_id) ;
+void LZMotor_position_enable(LZ_Motor_ID_t motor_id) ;
+
+int  LZMotor_send_command(LZ_Motor_ID_t motor_id);
+
+
+
+void LZMotor_disable(LZ_Motor_ID_t motor_id) ;
 void LZMotor_decode_candata(FDCAN_HandleTypeDef *hfdcan, uint32_t id, uint8_t *data);
 
 // 获取电机对象指针
-LZ_Motor_t* LZMotor_get(LZ_Motor_ID_t motor_id);
+extern LZ_Motor_t LZ_Motors[QUANTITY_OF_CAN][QUANTITY_OF_LZMOTOR];
 
 #endif // USE_LINGZU_MOTOR
-#endif // !__MOTOR_H__
+#endif // __MOTOR_H__
 

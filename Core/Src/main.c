@@ -22,14 +22,12 @@
 #include "dma.h"
 #include "fdcan.h"
 #include "iwdg.h"
-#include "memorymap.h"
 #include "octospi.h"
 #include "spi.h"
 #include "tim.h"
 #include "usart.h"
 #include "usb_device.h"
 #include "gpio.h"
-#include "launch.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -156,7 +154,6 @@ int main(void)
   // Shoot_init();
   HAL_IWDG_Refresh(&hiwdg1);
   HAL_GPIO_WritePin(Power_5V_GPIO_Port, Power_5V_Pin, GPIO_PIN_SET);
-  HAL_GPIO_WritePin(Camera_ctrl_GPIO_Port, Camera_ctrl_Pin, GPIO_PIN_SET);
   HAL_TIM_Base_Start_IT(&htim14);
   /* USER CODE END 2 */
 
@@ -352,7 +349,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   {
     if (i == 0)
     {
-     // HAL_GPIO_WritePin(Camera_ctrl_GPIO_Port, Camera_ctrl_Pin, GPIO_PIN_SET);
       STM32_to_MINIPC(IMU_data_history[history].AHRS.yaw,
                       IMU_data_history[history].AHRS.pitch,
                       cos(IMU_data_history[history].AHRS.pitch) * IMU_data_history[history].gyro[2] - sin(IMU_data_history[history].AHRS.yaw) * IMU_data_history[history].gyro[1]);
@@ -360,7 +356,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     }
     else
     {
-     // HAL_GPIO_WritePin(Camera_ctrl_GPIO_Port, Camera_ctrl_Pin, GPIO_PIN_RESET);
       i = 0;
     }
   }

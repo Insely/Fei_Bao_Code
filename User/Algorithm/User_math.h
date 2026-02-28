@@ -35,4 +35,5 @@ extern fp32 loop_fp32_constrain(fp32 Input, fp32 minValue, fp32 maxValue); //¸¡µ
 //Êı¾İÀàĞÍ×ª»»
 extern int float_to_uint(float x_float, float x_min, float x_max, int bits) ;
 extern float uint_to_float(int x_int, float x_min, float x_max, int bits);
+float uint16_to_float(uint16_t x,float x_min,float x_max,int bits);
 #endif // !__USER_MATH__

@@ -129,3 +129,19 @@ float uint_to_float(int x_int, float x_min, float x_max, int bits)
     float offset = x_min;
     return ((float)x_int) * span / ((float)((1 << bits) - 1)) + offset;
 }
+
+/*******************************************************************************
+* @功能     		: uint16_t型转float型浮点数
+* @参数1        : 需要转换的值
+* @参数2        : x的最小值
+* @参数3        : x的最大值
+* @参数4        : 需要转换的进制数
+* @返回值 			: 十进制的float型浮点数
+* @概述  				: None
+*******************************************************************************/
+float uint16_to_float(uint16_t x,float x_min,float x_max,int bits){
+    uint32_t span = (1 << bits) - 1;
+		x &= span; 
+    float offset = x_max - x_min;
+    return offset * x / span + x_min;
+}
