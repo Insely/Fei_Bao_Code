@@ -1,20 +1,20 @@
 /* USER CODE BEGIN Header */
 /**
-  ******************************************************************************
-  * File Name          : freertos.c
-  * Description        : Code for freertos applications
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2025 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
+ ******************************************************************************
+ * File Name          : freertos.c
+ * Description        : Code for freertos applications
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2025 STMicroelectronics.
+ * All rights reserved.
+ *
+ * This software is licensed under terms that can be found in the LICENSE file
+ * in the root directory of this software component.
+ * If no LICENSE file comes with this software, it is provided AS-IS.
+ *
+ ******************************************************************************
+ */
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
@@ -46,7 +46,9 @@
 #include <cmsis_os2.h>
 #include "usart.h"
 #include "UART_data_txrx.h"
-
+#include "motor_control_task.h"
+#include "launch.h"
+#include "reload.h"
 
 #include "iwdg.h"
 #include "buzzer.h"
@@ -75,51 +77,51 @@ enum shoot_control shoot_control_mode;
 /* Definitions for Remote_control */
 osThreadId_t Remote_controlHandle;
 const osThreadAttr_t Remote_control_attributes = {
-  .name = "Remote_control",
-  .stack_size = 512 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
+    .name = "Remote_control",
+    .stack_size = 512 * 4,
+    .priority = (osPriority_t)osPriorityNormal,
 };
 /* Definitions for Gimbal */
 osThreadId_t GimbalHandle;
 const osThreadAttr_t Gimbal_attributes = {
-  .name = "Gimbal",
-  .stack_size = 512 * 4,
-  .priority = (osPriority_t) osPriorityLow,
+    .name = "Gimbal",
+    .stack_size = 512 * 4,
+    .priority = (osPriority_t)osPriorityLow,
 };
 /* Definitions for Chassis */
 osThreadId_t ChassisHandle;
 const osThreadAttr_t Chassis_attributes = {
-  .name = "Chassis",
-  .stack_size = 1024 * 4,
-  .priority = (osPriority_t) osPriorityLow,
+    .name = "Chassis",
+    .stack_size = 1024 * 4,
+    .priority = (osPriority_t)osPriorityLow,
 };
 /* Definitions for Motor_control */
 osThreadId_t Motor_controlHandle;
 const osThreadAttr_t Motor_control_attributes = {
-  .name = "Motor_control",
-  .stack_size = 256 * 4,
-  .priority = (osPriority_t) osPriorityLow,
+    .name = "Motor_control",
+    .stack_size = 256 * 4,
+    .priority = (osPriority_t)osPriorityLow,
 };
 /* Definitions for Shoot */
 osThreadId_t ShootHandle;
 const osThreadAttr_t Shoot_attributes = {
-  .name = "Shoot",
-  .stack_size = 256 * 4,
-  .priority = (osPriority_t) osPriorityLow,
+    .name = "Shoot",
+    .stack_size = 256 * 4,
+    .priority = (osPriority_t)osPriorityLow,
 };
 /* Definitions for Referee */
 osThreadId_t RefereeHandle;
 const osThreadAttr_t Referee_attributes = {
-  .name = "Referee",
-  .stack_size = 512 * 4,
-  .priority = (osPriority_t) osPriorityLow,
+    .name = "Referee",
+    .stack_size = 512 * 4,
+    .priority = (osPriority_t)osPriorityLow,
 };
 /* Definitions for Log_and_debug */
 osThreadId_t Log_and_debugHandle;
 const osThreadAttr_t Log_and_debug_attributes = {
-  .name = "Log_and_debug",
-  .stack_size = 256 * 4,
-  .priority = (osPriority_t) osPriorityLow,
+    .name = "Log_and_debug",
+    .stack_size = 256 * 4,
+    .priority = (osPriority_t)osPriorityLow,
 };
 
 /* Private function prototypes -----------------------------------------------*/
@@ -142,26 +144,27 @@ void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 void vApplicationIdleHook(void);
 
 /* USER CODE BEGIN 2 */
-void vApplicationIdleHook( void )
+void vApplicationIdleHook(void)
 {
-   /* vApplicationIdleHook() will only be called if configUSE_IDLE_HOOK is set
-   to 1 in FreeRTOSConfig.h. It will be called on each iteration of the idle
-   task. It is essential that code added to this hook function never attempts
-   to block in any way (for example, call xQueueReceive() with a block time
-   specified, or call vTaskDelay()). If the application makes use of the
-   vTaskDelete() API function (as this demo application does) then it is also
-   important that vApplicationIdleHook() is permitted to return to its calling
-   function, because it is the responsibility of the idle task to clean up
-   memory allocated by the kernel to any task that has since been deleted. */
+  /* vApplicationIdleHook() will only be called if configUSE_IDLE_HOOK is set
+  to 1 in FreeRTOSConfig.h. It will be called on each iteration of the idle
+  task. It is essential that code added to this hook function never attempts
+  to block in any way (for example, call xQueueReceive() with a block time
+  specified, or call vTaskDelay()). If the application makes use of the
+  vTaskDelete() API function (as this demo application does) then it is also
+  important that vApplicationIdleHook() is permitted to return to its calling
+  function, because it is the responsibility of the idle task to clean up
+  memory allocated by the kernel to any task that has since been deleted. */
 }
 /* USER CODE END 2 */
 
 /**
-  * @brief  FreeRTOS initialization
-  * @param  None
-  * @retval None
-  */
-void MX_FREERTOS_Init(void) {
+ * @brief  FreeRTOS initialization
+ * @param  None
+ * @retval None
+ */
+void MX_FREERTOS_Init(void)
+{
   /* USER CODE BEGIN Init */
 
   /* USER CODE END Init */
@@ -211,24 +214,23 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN RTOS_EVENTS */
   /* add events, ... */
   /* USER CODE END RTOS_EVENTS */
-
 }
 
 /* USER CODE BEGIN Header_Remote_control_Task */
 /**
-  * @brief  Function implementing the Remote_control thread.
-  * @param  argument: Not used
-  * @retval None
-  */
+ * @brief  Function implementing the Remote_control thread.
+ * @param  argument: Not used
+ * @retval None
+ */
 /* USER CODE END Header_Remote_control_Task */
 void Remote_control_Task(void *argument)
 {
   /* init code for USB_DEVICE */
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN Remote_control_Task */
-  
+
   /* Infinite loop */
-  for(;;)
+  for (;;)
   {
     // osDelay(1);
     // if (DT7_data.online >= 0)
@@ -243,41 +245,39 @@ void Remote_control_Task(void *argument)
 
 /* USER CODE BEGIN Header_Gimbal_Task */
 /**
-* @brief Function implementing the Gimbal thread.
-* @param argument: Not used
-* @retval None
-*/
+ * @brief Function implementing the Gimbal thread.
+ * @param argument: Not used
+ * @retval None
+ */
 /* USER CODE END Header_Gimbal_Task */
 void Gimbal_Task(void *argument)
 {
   /* USER CODE BEGIN Gimbal_Task */
   /* Infinite loop */
-  for(;;)
+  for (;;)
   {
-    		if (RC_data.rc.s[3]==1807.0f)  // ?????
-    { 
-			Save_time_allow = YES;
-      // ????????????????
-      shoot_control_mode = AUTO_MODE;		//??????????????????????????????????????
-      // ?????????????????
+    if (RC_data.rc.s[2] == 1807.0f) //右手内侧拨杆向下
+    {
+      Save_time_allow = YES;
+      // 
+      shoot_control_mode = AUTO_MODE; //
+      // 
       shoot.Sten_left.mode = POSITION;
       shoot.Sten_right.mode = POSITION;
       shoot.Push_dart.mode = POSITION;
-			shoot.Trigger.mode = POSITION;
-
+      shoot.Trigger.mode = POSITION;
     }
-		else // ?????
+    else // 
     {
-      // ????????????????
-			Save_time_allow = NO;
-      shoot_control_mode = MANUAL_MODE;		//??????????????????????????????????????
-      // ????????????????
-			shoot.Sten_left.mode = VELOCITY;
-			shoot.Sten_right.mode = VELOCITY;
-			shoot.Push_dart.mode = VELOCITY;
-			shoot.Yaw_root.mode = VELOCITY;
-			shoot.Trigger.mode = POSITION;
-//			time_table= 0;
+      Save_time_allow = NO;
+      shoot_control_mode = MANUAL_MODE; //
+                                        // 
+      shoot.Sten_left.mode = VELOCITY;
+      shoot.Sten_right.mode = VELOCITY;
+      shoot.Push_dart.mode = VELOCITY;
+      shoot.Yaw_root.mode = VELOCITY;
+      shoot.Trigger.mode = POSITION;
+      //			time_table= 0;
     }
     osDelay(5);
   }
@@ -286,28 +286,27 @@ void Gimbal_Task(void *argument)
 
 /* USER CODE BEGIN Header_Chassis_Task */
 /**
-* @brief Function implementing the Chassis thread.
-* @param argument: Not used
-* @retval None
-*/
+ * @brief Function implementing the Chassis thread.
+ * @param argument: Not used
+ * @retval None
+ */
 /* USER CODE END Header_Chassis_Task */
 void Chassis_Task(void *argument)
 {
   /* USER CODE BEGIN Chassis_Task */
   /* Infinite loop */
 
-  for(;;)
+  for (;;)
   {
     test();
-     
     if (shoot_control_mode == MANUAL_MODE)
     {
       Manual_mode();
     }
-		else if (shoot_control_mode == AUTO_MODE)
-		{
+    else if (shoot_control_mode == AUTO_MODE)
+    {
       Auto_mode();
-		}
+    }
 
     osDelay(1);
   }
@@ -316,59 +315,68 @@ void Chassis_Task(void *argument)
 
 /* USER CODE BEGIN Header_Motor_control_Task */
 /**
-* @brief Function implementing the Motor_control thread.
-* @param argument: Not used
-* @retval None
-*/
+ * @brief Function implementing the Motor_control thread.
+ * @param argument: Not used
+ * @retval None
+ */
 /* USER CODE END Header_Motor_control_Task */
 void Motor_control_Task(void *argument)
 {
   /* USER CODE BEGIN Motor_control_Task */
+  osDelay(4000);
   PWM_control_init();
   Shoot_init();
   Fei_Bao_motor_init();
-  save_moto_zero();
-  /* Infinite loop */
-  for(;;)
-  { 
-  LZMotor_send_command(MID_MOTO);
-  LZMotor_send_command(LEFT_MOTO);
-  osDelay(2);
-  LZMotor_send_command(RIGHT_MOTO);
-  //??????????
-  if(RC_data.online!=-1&&RC_data.rc.s[0]!=240){
-      enable_motor_mode(&hfdcan1,STEN_MOTO,POS_MODE);
-      motor_control_task();
-      }
-  else{
-      set_CAN2_DJImotor(0, YAW_ROOT); // ?????????
-      set_CAN2_DJImotor(0, TRIGGER); // ?????????
-      DJIMotor_SendCurrent (CAN_20063508_1_4_ID , DJI_CAN_2); 
-      disable_motor_mode(&hfdcan1,STEN_MOTO,POS_MODE);
-      }    
-  osDelay(1);
+  enable_motor_mode(&hfdcan1, STEN_MOTO, SPD_MODE);
+  osDelay(5);
+  enable_motor_mode(&hfdcan1, STEN_MOTO, SPD_MODE);
+  osDelay(5);
+  enable_motor_mode(&hfdcan1, STEN_MOTO, SPD_MODE);
+  osDelay(5);
+  enable_motor_mode(&hfdcan1, STEN_MOTO, SPD_MODE);
+  osDelay(5);
+  enable_motor_mode(&hfdcan1, STEN_MOTO, SPD_MODE);
 
+  // save_moto_zero();
+
+  /* Infinite loop */
+  for (;;)
+  {
+    motor_control_task();
+
+    //
+    if (RC_data.online != -1 && RC_data.rc.s[0] != 240)
+    {
+      enable_motor_mode(&hfdcan1, STEN_MOTO, SPD_MODE);
+
+    }
+    else
+    {
+      set_CAN2_DJImotor(0, YAW_ROOT); // 
+      set_CAN2_DJImotor(0, TRIGGER);  // 
+      DJIMotor_SendCurrent(CAN_20063508_1_4_ID, DJI_CAN_2);
+      disable_motor_mode(&hfdcan1, STEN_MOTO, POS_MODE);
+    }
+    osDelay(1);
   }
-    // fdcanx_send_data(&hfdcan1,0x200,can_data,8);
-  
+  // fdcanx_send_data(&hfdcan1,0x200,can_data,8);
+
   /* USER CODE END Motor_control_Task */
 }
 
 /* USER CODE BEGIN Header_Shoot_Task */
 /**
-* @brief Function implementing the Shoot thread.
-* @param argument: Not used
-* @retval None
-*/
+ * @brief Function implementing the Shoot thread.
+ * @param argument: Not used
+ * @retval None
+ */
 /* USER CODE END Header_Shoot_Task */
 void Shoot_Task(void *argument)
 {
   /* USER CODE BEGIN Shoot_Task */
   /* Infinite loop */
-  for(;;)
+  for (;;)
   {
-    // fdcanx_send_data(&hfdcan1,0x200,can_data,8);
-
     HAL_IWDG_Refresh(&hiwdg1);
     osDelay(10);
   }
@@ -377,17 +385,17 @@ void Shoot_Task(void *argument)
 
 /* USER CODE BEGIN Header_Referee_Task */
 /**
-* @brief Function implementing the Referee thread.
-* @param argument: Not used
-* @retval None
-*/
+ * @brief Function implementing the Referee thread.
+ * @param argument: Not used
+ * @retval None
+ */
 /* USER CODE END Header_Referee_Task */
 void Referee_Task(void *argument)
 {
   /* USER CODE BEGIN Referee_Task */
 
   /* Infinite loop */
-  for(;;)
+  for (;;)
   {
     Referee_unpack_fifo_data(&referee_fifo, &referee_unpack_obj);
     osDelay(1);
@@ -397,24 +405,24 @@ void Referee_Task(void *argument)
 
 /* USER CODE BEGIN Header_Log_and_debug_Task */
 /**
-* @brief Function implementing the Log_and_debug thread.
-* @param argument: Not used
-* @retval None
-*/
+ * @brief Function implementing the Log_and_debug thread.
+ * @param argument: Not used
+ * @retval None
+ */
 /* USER CODE END Header_Log_and_debug_Task */
 void Log_and_debug_Task(void *argument)
 {
   /* USER CODE BEGIN Log_and_debug_Task */
 
   /* Infinite loop */
-  for(;;)
+  for (;;)
   {
-  LEDshowcolor(RED);
-  osDelay(500);
-  LEDshowcolor(BLUE);
-  osDelay(500);
-  LEDshowcolor(GREEN);
-  osDelay(500);
+    LEDshowcolor(RED);
+    osDelay(500);
+    LEDshowcolor(BLUE);
+    osDelay(500);
+    LEDshowcolor(GREEN);
+    osDelay(500);
   }
   /* USER CODE END Log_and_debug_Task */
 }
@@ -423,4 +431,3 @@ void Log_and_debug_Task(void *argument)
 /* USER CODE BEGIN Application */
 
 /* USER CODE END Application */
-

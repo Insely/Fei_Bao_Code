@@ -638,7 +638,7 @@ void LZMotor_decode_candata(FDCAN_HandleTypeDef *hfdcan, uint32_t id, uint8_t *d
     LZ_Motors[can_bus][motor_id].state.temperature = ((data[6]<<8) | data[7])*0.1;
     
     //数据处理
-        // count cnt
+    // count cnt
     if(LZ_Motors[can_bus][motor_id].state.sign == 0) {LZ_Motors[can_bus][motor_id].state.sign ++ ; LZ_Motors[can_bus][motor_id].state.angle_last = LZ_Motors[can_bus][motor_id].state.angle;}
     if (LZ_Motors[can_bus][motor_id].state.angle_last > 12 && LZ_Motors[can_bus][motor_id].state.angle < -12)
         LZ_Motors[can_bus][motor_id].state.angle_cnt += ((P_MAX - LZ_Motors[can_bus][motor_id].state.angle_last) + (LZ_Motors[can_bus][motor_id].state.angle + P_MAX));

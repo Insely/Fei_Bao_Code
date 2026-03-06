@@ -91,8 +91,7 @@ extern DMA_HandleTypeDef hdma_uart7_rx;
   * @brief  The application entry point.
   * @retval int
   */
-int main(void)
-{
+int main(void){
 
   /* USER CODE BEGIN 1 */
 
@@ -102,7 +101,7 @@ int main(void)
   MPU_Config();
 
   /* MCU Configuration--------------------------------------------------------*/
-
+ 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
 
@@ -132,7 +131,7 @@ int main(void)
   MX_USART10_UART_Init();
   MX_FDCAN3_Init();
   MX_OCTOSPI2_Init();
-  MX_IWDG1_Init();
+
   MX_USART2_UART_Init();
   MX_USART3_UART_Init();
   MX_USART1_UART_Init();
@@ -152,6 +151,7 @@ int main(void)
   // Chassis_init();
   // Gimbal_init();
   // Shoot_init();
+  MX_IWDG1_Init();
   HAL_IWDG_Refresh(&hiwdg1);
   HAL_GPIO_WritePin(Power_5V_GPIO_Port, Power_5V_Pin, GPIO_PIN_SET);
   HAL_TIM_Base_Start_IT(&htim14);
