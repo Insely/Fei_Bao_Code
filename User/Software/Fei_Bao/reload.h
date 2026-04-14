@@ -13,7 +13,8 @@ void p_ctrl(float target_angle, float speed, float deadzone);
 void P_dart(void);
 void C_dart(void);
 
-void small_position_ready(FlingState_t next_mode);
-void back(FlingState_t next_mode);
+uint8_t LZ_double_motor_ctrl(float pos);
+uint8_t position_ready(double target);
+uint8_t back();
 
 #endif

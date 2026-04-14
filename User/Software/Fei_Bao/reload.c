@@ -21,7 +21,7 @@ void Trigger_up(void)
 
   if (shoot_state == 0)
   {
-    point_angle += 2000;
+    point_angle += 0;
     Shoot_set_sten_trigger_position(point_angle);
     reset_state = 0;
     shoot_state = 1;
@@ -41,6 +41,9 @@ void sten_moto_ctrl(float angle, float val)
 
 void sten_moto_spctrl(float val)
 {
+  // 拉弓保护：多圈累计角度超过 -7.5 时禁止继续负向运动
+  if (cnt_angle < -7.5 && val < 0)
+    val = 0;
 
   spd_ctrl(&hfdcan1, STEN_MOTO, val);
   spd_ctrl(&hfdcan1, STEN_MOTO, val);
@@ -60,18 +63,18 @@ void sten_moto_spctrl(float val)
 
 void find_zero(void)
 {
-
-  if (DM_Motor_data[0][0].motor_data.para.pos < 1.01)
+  float pos = DM_Motor_data[0][0].motor_data.para.pos;
+  if (pos >= 0.95 && pos <= 1.05)
+  {
+    sten_moto_spctrl(0);
+  }
+  else if (pos < 0.95)
   {
     sten_moto_spctrl(1);
   }
-  else if (DM_Motor_data[0][0].motor_data.para.pos > 0.99)
-  {
-    sten_moto_spctrl(-1);
-  }
   else
   {
-    sten_moto_spctrl(0);
+    sten_moto_spctrl(-1);
   }
 }
 
@@ -109,49 +112,63 @@ void p_ctrl(float target_angle, float speed, float deadzone)
 
 void save_moto_zero()
 {
-
   save_pos_zero(&hfdcan1, STEN_MOTO, POS_MODE);
 }
 
-void small_position_ready(FlingState_t next_mode)
+uint8_t position_ready(double target)
 {
-  if (cnt_angle > SMALL_P + LOW_SPEED)
+  float error = target - cnt_angle;
+  float speed;
+
+  if (fabs(error) > LOW_SPEED)
   {
-    sten_moto_spctrl(-5); // 在远离区间高速
+    speed = (error > 0) ? 7 : -7;  // 高速向目标移动
   }
   else
   {
-    sten_moto_spctrl(-2);                                 // 在靠近区间低速
-    if (fabs(cnt_angle - SMALL_P) < STEN_MOTOR_TOLERANCE) // 位置偏差小于容差
+    speed = (error > 0) ? 1 : -1;  // 低速向目标移动
+    if (fabs(error) < STEN_MOTOR_TOLERANCE) // 位置偏差小于容差
     {
       sten_moto_spctrl(0);
-      fling_state = next_mode;
+      return 1; // 到位
     }
   }
+  energy_state_start_time = current_time;
+  sten_moto_spctrl(speed);
+  return 0; // 未到位
 }
 
-void back(FlingState_t next_mode)
+
+uint8_t LZ_double_motor_ctrl(float pos)
 {
-  if (cnt_angle < 1.1 - LOW_SPEED)
+
+  float L_pos = (-pos) + (PARAM_LR_HOME_POS);
+  float R_pos = (pos) + (PARAM_LR_HOME_POS);
+
+  LZMotor_set_pos_param(LEFT_MOTO, L_pos, 5);
+  LZMotor_set_pos_param(RIGHT_MOTO, R_pos, 5);
+  if (fabs(GET_LZ_MOTOR_ANGLE(LEFT_MOTO) - (L_pos)) < MOTOR_ANGLE_TOLERANCE &&
+      fabs(GET_LZ_MOTOR_ANGLE(RIGHT_MOTO) - (R_pos)) < MOTOR_ANGLE_TOLERANCE)
   {
-    sten_moto_spctrl(5); // 在远离区间高速
+    return 1; // 到位
   }
-  else
-  {
-    sten_moto_spctrl(2);                            // 在靠近区间低速
-    if (fabs(cnt_angle - 1.1) < STEN_MOTOR_TOLERANCE) // 位置偏差小于容差
-    {
-      sten_moto_spctrl(0);
-      fling_state = next_mode;
-    }
-  }
+  reload_state_start_time = current_time;
+  return 0; // 未到位
+}
+
+
+
+uint8_t back()
+{
+  return position_ready(BACK_P);
 }
 
 void P_dart(void)
 {
-  set_servo_angle(PWM_PIN_1, 120);
+  set_servo_angle(PWM_PIN_1, 88);
 }
 void C_dart(void)
 {
-  set_servo_angle(PWM_PIN_1, 80);
+  set_servo_angle(PWM_PIN_1, 70);
 }
+

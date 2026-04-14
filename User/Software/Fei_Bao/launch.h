@@ -3,6 +3,8 @@
 
 #include "fei_bao_types.h"
 
+#define GET_LZ_MOTOR_ANGLE(motor_id) (LZ_Motors[motor_id / QUANTITY_OF_LZMOTOR][motor_id % QUANTITY_OF_LZMOTOR].state.angle)
+
 void vision(int MIN_SPEED, int MAX_SPEED, int ERROR_SPEED);
 void Manual_mode(void);
 void Auto_mode(void);
@@ -15,15 +17,34 @@ extern long point_angle;
 extern uint8_t shoot_state;
 extern uint8_t reset_state;
 
-extern FlingState_t fling_state;
+extern Energy_State energy_state;
 
-extern const uint32_t SERVO_DELAY_MS;      // èˆµæœºå»¶æ—¶
-extern const uint32_t TRIGGER_DELAY_MS;    // æ‹¨å¼¹è½®ç­‰å¾…å»¶æ—¶
-extern const uint32_t DOWN_AGAIN_MS;              // å†æ¬¡ä¸‹é™å»¶æ—¶
-extern const double SMALL_P;               // è¿‘è·å‘å°„
-extern const double BIG_P;                 // è¿œè·å‘å°„
-extern const double LOW_SPEED;             // å‰è¿›ä½é€Ÿé€Ÿåº¦
-extern const double STEN_MOTOR_TOLERANCE;  // 10010Lè¯¯å·®å®¹å·®
-extern const double MOTOR_ANGLE_TOLERANCE; // ç”µæœºè§’åº¦è¯¯å·®å®¹å·®ï¼Œå•ä½rad
+extern uint32_t energy_state_start_time;
+extern uint32_t reload_state_start_time;
+extern uint32_t fire_state_start_time;
+extern uint32_t current_time;
+extern uint32_t SERVO_DELAY_MS;   // èˆµæœºå»¶æ—¶
+extern uint32_t TRIGGER_DELAY_MS; // æ‹¨å¼¹è½?ç­‰å¾…å»¶æ??
+extern uint32_t DOWN_AGAIN_MS;    // å†æ?¡ä¸‹é™å»¶æ—?
+extern double PULL_P;             // æ”¾é•–ä½ç½®
+extern double WAIT_P;
+extern double Fir_P;                 // µÚÒ»·¢·¢ÉäÎ»ÖÃ
+extern double Sec_P;                 // µÚ¶ş·¢·¢ÉäÎ»ÖÃ
+extern double Thr_P;                 // µÚÈı·¢·¢ÉäÎ»ÖÃ
+extern double Fou_P;                 // µÚËÄ·¢·¢ÉäÎ»ÖÃ
+extern double LOW_SPEED;
+extern double STEN_MOTOR_TOLERANCE;
+extern double MOTOR_ANGLE_TOLERANCE;
+extern double BACK_P;
+
+extern float LZ_HOME;
+extern float LZ_CLAMP_POS;
+extern float LZ_PUSH_POS;
+extern float LZ_HALF_DOWN_POS;
+
+extern float MID_SLIDE_LEFT;
+extern float MID_SLIDE_RIGHT;
+extern float MID_HOME;
+extern float LR_HOME;
 
 #endif

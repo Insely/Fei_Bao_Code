@@ -301,6 +301,8 @@ void Chassis_Task(void *argument)
     test();
     if (shoot_control_mode == MANUAL_MODE)
     {
+      set_servo_angle(PWM_PIN_1, 70);
+
       Manual_mode();
     }
     else if (shoot_control_mode == AUTO_MODE)
@@ -327,16 +329,6 @@ void Motor_control_Task(void *argument)
   PWM_control_init();
   Shoot_init();
   Fei_Bao_motor_init();
-  enable_motor_mode(&hfdcan1, STEN_MOTO, SPD_MODE);
-  osDelay(5);
-  enable_motor_mode(&hfdcan1, STEN_MOTO, SPD_MODE);
-  osDelay(5);
-  enable_motor_mode(&hfdcan1, STEN_MOTO, SPD_MODE);
-  osDelay(5);
-  enable_motor_mode(&hfdcan1, STEN_MOTO, SPD_MODE);
-  osDelay(5);
-  enable_motor_mode(&hfdcan1, STEN_MOTO, SPD_MODE);
-
   // save_moto_zero();
 
   /* Infinite loop */
