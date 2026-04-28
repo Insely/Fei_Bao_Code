@@ -49,6 +49,8 @@ extern UART_HandleTypeDef huart10;
 
 // 将上述串口+DMA整合，并包含缓冲区
 VisionData vision_data;
+RadarData radar_data;
+OdinData odin_data;
 transmit_data UART1_data;
 transmit_data UART2_data;
 transmit_data UART3_data;
@@ -137,8 +139,9 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
     break;
   }
 
-  case (uintptr_t)USART3:
+  case (uintptr_t)USART3: // 奥丁
   {
+
     // 重新启动DMA接收
     HAL_UARTEx_ReceiveToIdle_DMA(huart, UART3_data.rev_data, UART_BUFFER_SIZE);
     __HAL_DMA_DISABLE_IT(huart->hdmarx, DMA_IT_HT); // 关闭半传输中断
@@ -154,7 +157,6 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
        FSI6X_decode_data(UART5_data.rev_data, &FSI6X_data);
   //   } 
   
-
     // 重新启动DMA接收
     HAL_UARTEx_ReceiveToIdle_DMA(huart, UART5_data.rev_data, UART_BUFFER_SIZE);
     __HAL_DMA_DISABLE_IT(huart->hdmarx, DMA_IT_HT); // 关闭半传输中断
@@ -163,6 +165,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 
   case (uintptr_t)UART7: // 电管裁判系统
   {
+
     fifo_s_puts(&referee_fifo, (char *)UART7_data.rev_data, (int)Size);
 
     // 重新启动DMA接收
@@ -173,10 +176,13 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 
   case (uintptr_t)USART10: // 图传链路裁判系统
   {
-    if (Size == 21)
-    {
-      VT13_data_solve(UART10_data.rev_data, &VT13_data);
-    }
+    // if (Size == 21)
+    // {
+    //   VT13_data_solve(UART10_data.rev_data, &VT13_data);
+    // }
+
+    //decodeRADARdata(&radar_data,UART10_data.rev_data, Size);
+    decodeODINdata(&odin_data, UART10_data.rev_data, Size);
 
     // 重新启动DMA接收
     HAL_UARTEx_ReceiveToIdle_DMA(huart, UART10_data.rev_data, UART_BUFFER_SIZE);

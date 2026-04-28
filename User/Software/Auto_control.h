@@ -57,10 +57,26 @@ typedef struct __attribute__((packed)) {
     uint8_t  allow_fire;    // 是否允许发射
 } VisionData; 
 
+// 雷达发送的数据结构 (RadarData)
+typedef struct __attribute__((packed)) {
+    uint8_t  header;        // 帧头 0xBB
+    float    dist_value;    // 距离值，单位米
+    uint8_t  at_center;     // 是否在中心区域（1是，0否）
+    uint8_t  allow_fire;    // 是否允许触发（1允许，0不允许）
+} RadarData;
+
+// 奥丁发送的数据结构 (OdinData)
+typedef struct __attribute__((packed)) {
+    uint8_t  header;        // 帧头 0xCC
+    float    distance;      // 距离值
+} OdinData;
+
 #pragma pack(4)
 
 void STM32_to_MINIPC(float yaw,float pitch,float omega);
 void decodeMINIPCdata(VisionData *target, uint8_t *buff, uint16_t len);
+void decodeRADARdata(RadarData *target, uint8_t *buff, uint16_t len);
+void decodeODINdata(OdinData *target, uint8_t *buff, uint16_t len);
 void Auto_control();
 void MINIPC_to_STM32();
 

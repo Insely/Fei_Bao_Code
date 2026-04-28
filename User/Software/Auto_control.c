@@ -31,6 +31,33 @@ void decodeMINIPCdata(VisionData *target, uint8_t *buff, uint16_t len)
         }
     }
 }
+void decodeRADARdata(RadarData *target, uint8_t *buff, uint16_t len)
+{
+    if (len < sizeof(RadarData)) return;
+
+    for (int i = 0; i <= (len - sizeof(RadarData)); i++) 
+    {
+        if (buff[i] == 0xBB) 
+        {
+            memcpy(target, &buff[i], sizeof(RadarData));
+            break;
+        }
+    }
+}
+
+void decodeODINdata(OdinData *target, uint8_t *buff, uint16_t len)
+{
+    if (len < sizeof(OdinData)) return;
+
+    for (int i = 0; i <= (len - sizeof(OdinData)); i++) 
+    {
+        if (buff[i] == 0xBB) 
+        {
+            memcpy(target, &buff[i], sizeof(OdinData));
+            break;
+        }
+    }
+}
 
 int encodeSTM32(STM32_data_t *target, unsigned char tx_buff[], unsigned int len)
 {

@@ -38,6 +38,8 @@ extern transmit_data UART10_data;
 extern transmit_data UART1_data;
 
 extern VisionData vision_data;
+extern RadarData radar_data;
+extern OdinData odin_data;
 //外部调用
 void uart_init(void);                                                                                                                         //初始化
 void UART_DMA_rxtx_start(transmit_data *data, UART_HandleTypeDef *huart, DMA_HandleTypeDef *hdma_usart_rx, DMA_HandleTypeDef *hdma_usart_tx); //初始化                                                                                               //接受中断

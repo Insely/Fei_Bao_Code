@@ -8,28 +8,28 @@
 
 #include "hipnuc_dec.h"
 
-/* The driver file for decoding HiPNUC protocol, DO NOT MODIFTY*/
+/* HiPNUC 协议解码驱动文件，请勿修改 */
 
-/* HiPNUC protocol constants */
-#define CHSYNC1                 (0x5A)              /* CHAOHE message sync code 1 */
-#define CHSYNC2                 (0xA5)              /* CHAOHE message sync code 2 */
-#define CH_HDR_SIZE             (0x06)              /* CHAOHE protocol header size */
+/* HiPNUC 协议常量 */
+#define CHSYNC1                 (0x5A)              /* 帧同步字节1 */
+#define CHSYNC2                 (0xA5)              /* 帧同步字节2 */
+#define CH_HDR_SIZE             (0x06)              /* 协议帧头长度 */
 
-/* legcy support of HI226/HI229 */
-#define HIPNUC_ID_USRID         (0x90)
-#define HIPNUC_ID_ACC_RAW       (0xA0)
-#define HIPNUC_ID_ACC_CAL       (0xA1)
-#define HIPNUC_ID_GYR_RAW       (0xB0)
-#define HIPNUC_ID_GYR_CAL       (0xB1)
-#define HIPNUC_ID_MAG_RAW       (0xC0)
-#define HIPNUC_ID_EUL           (0xD0)
-#define HIPNUC_ID_QUAT          (0xD1)
-#define HIPNUC_ID_PRS           (0xF0)
+/* 兼容旧版 HI226/HI229 的数据包ID */
+#define HIPNUC_ID_USRID         (0x90)              /* 用户ID */
+#define HIPNUC_ID_ACC_RAW       (0xA0)              /* 原始加速度 */
+#define HIPNUC_ID_ACC_CAL       (0xA1)              /* 校准加速度 */
+#define HIPNUC_ID_GYR_RAW       (0xB0)              /* 原始陀螺仪 */
+#define HIPNUC_ID_GYR_CAL       (0xB1)              /* 校准陀螺仪 */
+#define HIPNUC_ID_MAG_RAW       (0xC0)              /* 原始磁力计 */
+#define HIPNUC_ID_EUL           (0xD0)              /* 欧拉角 */
+#define HIPNUC_ID_QUAT          (0xD1)              /* 四元数 */
+#define HIPNUC_ID_PRS           (0xF0)              /* 气压 */
 
-/* new HiPNUC standard packet */
-#define HIPNUC_ID_HI91        (0x91)
-#define HIPNUC_ID_HI92        (0x92)
-#define HIPNUC_ID_HI81        (0x81)
+/* 新版 HiPNUC 标准数据包ID */
+#define HIPNUC_ID_HI91        (0x91)                /* 浮点型IMU数据包 */
+#define HIPNUC_ID_HI92        (0x92)                /* 整型IMU数据包 */
+#define HIPNUC_ID_HI81        (0x81)                /* INS组合导航数据包 */
 
 #ifndef D2R
 #define D2R (0.0174532925199433F)
@@ -46,8 +46,10 @@
 
 static void hipnuc_crc16(uint16_t *inital, const uint8_t *buf, uint32_t len);
 
-/* common type conversion */
-#define I2(p) (*((int16_t *)(p)))
+/* 通用类型转换宏和函数 */
+#define I2(p) (*((int16_t *)(p)))       /* 从缓冲区读取有符号16位整数 */
+
+/* 从缓冲区读取无符号16位整数 */
 static uint16_t U2(uint8_t *p)
 {
     uint16_t u;
@@ -55,6 +57,7 @@ static uint16_t U2(uint8_t *p)
     return u;
 }
 
+/* 从缓冲区读取32位浮点数 */
 static float R4(uint8_t *p)
 {
     float r;
@@ -62,25 +65,26 @@ static float R4(uint8_t *p)
     return r;
 }
 
-/* parse the payload of a frame and feed into data section */
+/* 解析一帧数据的有效载荷，将解析结果填入对应的数据结构 */
 static int parse_data(hipnuc_raw_t *raw)
 {
     int ofs = 0;
-    uint8_t *p = &raw->buf[CH_HDR_SIZE];
+    uint8_t *p = &raw->buf[CH_HDR_SIZE];  /* 指向帧头之后的有效载荷起始位置 */
     
-    /* ignore all previous data */
+    /* 清除上一帧的数据标记 */
     raw->hi91.tag = 0;
     raw->hi81.tag = 0;
     raw->hi92.tag = 0;
 
+    /* 逐个解析有效载荷中的子数据包 */
     while (ofs < raw->len)
     {
         switch (p[ofs])
         {
-        case HIPNUC_ID_USRID:
+        case HIPNUC_ID_USRID:       /* 用户ID，跳过 */
             ofs += 2;
             break;
-        case HIPNUC_ID_ACC_RAW:
+        case HIPNUC_ID_ACC_RAW:     /* 旧版加速度数据（原始/校准），单位转换为g */
         case HIPNUC_ID_ACC_CAL:
              raw->hi91.tag = HIPNUC_ID_HI91;
              raw->hi91.acc[0] = (float)I2(p + ofs + 1) / 1000;
@@ -88,7 +92,7 @@ static int parse_data(hipnuc_raw_t *raw)
              raw->hi91.acc[2] = (float)I2(p + ofs + 5) / 1000;
             ofs += 7;
             break;
-        case HIPNUC_ID_GYR_RAW:
+        case HIPNUC_ID_GYR_RAW:     /* 旧版陀螺仪数据（原始/校准），单位转换为°/s */
         case HIPNUC_ID_GYR_CAL:
             raw->hi91.tag = HIPNUC_ID_HI91;
             raw->hi91.gyr[0] = (float)I2(p + ofs + 1) / 10;
@@ -96,21 +100,21 @@ static int parse_data(hipnuc_raw_t *raw)
             raw->hi91.gyr[2] = (float)I2(p + ofs + 5) / 10;
             ofs += 7;
             break;
-        case HIPNUC_ID_MAG_RAW:
+        case HIPNUC_ID_MAG_RAW:     /* 旧版磁力计数据 */
             raw->hi91.tag = HIPNUC_ID_HI91;
             raw->hi91.mag[0] = (float)I2(p + ofs + 1) / 10;
             raw->hi91.mag[1] = (float)I2(p + ofs + 3) / 10;
             raw->hi91.mag[2] = (float)I2(p + ofs + 5) / 10;
             ofs += 7;
             break;
-        case HIPNUC_ID_EUL:
+        case HIPNUC_ID_EUL:         /* 旧版欧拉角数据：俯仰/横滚/航向 */
             raw->hi91.tag = HIPNUC_ID_HI91;
             raw->hi91.pitch = (float)I2(p + ofs + 1) / 100;
             raw->hi91.roll = (float)I2(p + ofs + 3) / 100;
             raw->hi91.yaw = (float)I2(p + ofs + 5) / 10;
             ofs += 7;
             break;
-        case HIPNUC_ID_QUAT:
+        case HIPNUC_ID_QUAT:        /* 旧版四元数数据 (w,x,y,z) */
             raw->hi91.tag = HIPNUC_ID_HI91;
             raw->hi91.quat[0] = R4(p + ofs + 1);
             raw->hi91.quat[1] = R4(p + ofs + 5);
@@ -118,24 +122,24 @@ static int parse_data(hipnuc_raw_t *raw)
             raw->hi91.quat[3] = R4(p + ofs + 13);
             ofs += 17;
             break;
-        case HIPNUC_ID_PRS:
+        case HIPNUC_ID_PRS:         /* 旧版气压数据 */
             raw->hi91.tag = HIPNUC_ID_HI91;
             raw->hi91.air_pressure = R4(p + ofs + 1);
             ofs += 5;
             break;
-        case HIPNUC_ID_HI91:
+        case HIPNUC_ID_HI91:        /* 新版0x91浮点型IMU数据包，整体拷贝 */
             memcpy(&raw->hi91, p + ofs, sizeof(hi91_t));
             ofs += sizeof(hi91_t);
             break;
-        case HIPNUC_ID_HI81:
+        case HIPNUC_ID_HI81:        /* 新版0x81 INS组合导航数据包，整体拷贝 */
             memcpy(&raw->hi81, p + ofs, sizeof(hi81_t));
             ofs += sizeof(hi81_t);
             break;
-        case HIPNUC_ID_HI92:
+        case HIPNUC_ID_HI92:        /* 新版0x92整型IMU数据包，整体拷贝 */
             memcpy(&raw->hi92, p + ofs, sizeof(hi92_t));
             ofs += sizeof(hi92_t);
             break;
-        default:
+        default:                    /* 未知数据包ID，跳过1字节 */
             ofs++;
             break;
         }
@@ -143,23 +147,24 @@ static int parse_data(hipnuc_raw_t *raw)
     return 1;
 }
 
+/* 解码一帧完整的 HiPNUC 数据：先校验CRC，再解析有效载荷 */
 static int decode_hipnuc(hipnuc_raw_t *raw)
 {
     uint16_t crc = 0;
 
-    /* checksum */
+    /* CRC16 校验：对帧头(不含CRC字段)和有效载荷分别计算 */
     hipnuc_crc16(&crc, raw->buf, (CH_HDR_SIZE-2));
     hipnuc_crc16(&crc, raw->buf + CH_HDR_SIZE, raw->len);
     if (crc != U2(raw->buf + (CH_HDR_SIZE-2)))
     {
-        // NL_TRACE("ch checksum error: frame:0x%X calcuate:0x%X, len:%d\n", U2(raw->buf + 4), crc, raw->len);
+        /* CRC校验失败，丢弃该帧 */
         return -1;
     }
 
     return parse_data(raw);
 }
 
-/* sync code */
+/* 帧同步：检测连续的两个同步字节 0x5A 0xA5 */
 static int sync_hipnuc(uint8_t *buf, uint8_t data)
 {
     buf[0] = buf[1];
@@ -168,15 +173,15 @@ static int sync_hipnuc(uint8_t *buf, uint8_t data)
 }
 
 /**
- * @brief     HiPNUC decoder input, read one byte at a time.
+ * @brief  HiPNUC 解码器输入函数，每次输入一个字节
  *
- * @param    raw is the decoder struct.
- * @param    data is the one byte read from stream.
- * @return   >0: decoder received a frame successfully, else: receiver did not receive a frame successfully.
+ * @param  raw  解码器结构体指针
+ * @param  data 从串口读取的一个字节
+ * @return >0: 成功接收并解码一帧数据; 0: 需要更多数据; -1: 错误
  */
 int hipnuc_input(hipnuc_raw_t *raw, uint8_t data)
 {
-    /* synchronize frame */
+    /* 第一步：寻找帧同步字节 0x5A 0xA5 */
     if (raw->nbyte == 0)
     {
         if (!sync_hipnuc(raw->buf, data))
@@ -187,21 +192,24 @@ int hipnuc_input(hipnuc_raw_t *raw, uint8_t data)
 
     raw->buf[raw->nbyte++] = data;
 
+    /* 第二步：读取帧头中的有效载荷长度字段 */
     if (raw->nbyte == CH_HDR_SIZE)
     {
         if ((raw->len = U2(raw->buf + 2)) > (HIPNUC_MAX_RAW_SIZE - CH_HDR_SIZE))
         {
-            // NL_TRACE("ch length error: len=%d\n",raw->len);
+            /* 长度超限，重置状态 */
             raw->nbyte = 0;
             return -1;
         }
     }
 
+    /* 第三步：等待接收完整帧数据 */
     if (raw->nbyte < CH_HDR_SIZE || raw->nbyte < (raw->len + CH_HDR_SIZE))
     {
         return 0;
     }
 
+    /* 第四步：接收完毕，进行CRC校验和解码 */
     raw->nbyte = 0;
 
     return decode_hipnuc(raw);
@@ -209,29 +217,29 @@ int hipnuc_input(hipnuc_raw_t *raw, uint8_t data)
 
 
 /**
- * @brief    Convert packet to string, only dump parts of data
+ * @brief  将解码后的数据包格式化为JSON字符串，用于调试输出
  *
- * @param    raw is struct of decoder
- * @param    buf is the log string buffer, make sure buf is larger than 256
- * @param    buf_size is the size of the log buffer
- * @return   Number of characters written to the buffer
+ * @param  raw       解码器结构体指针，包含已解码的数据
+ * @param  buf       输出字符串缓冲区，确保大小不小于256字节
+ * @param  buf_size  输出缓冲区大小
+ * @return 写入缓冲区的字符数
  */
 int hipnuc_dump_packet(hipnuc_raw_t *raw, char *buf, size_t buf_size)
 {
     int written = 0;
     int ret;
 
-    /* dump 0x91 packet */
+    /* 输出 0x91 浮点型IMU数据包 */
     if(raw->hi91.tag == HIPNUC_ID_HI91)
     {
-        /* Format:
-         * system_time: ms
-         * acc: m/s虏
-         * gyr: deg/s
-         * mag: uT
-         * pitch/roll/yaw: deg
-         * quat: w,x,y,z
-         * air_pressure: Pa
+        /* 数据格式说明:
+         * system_time: 系统时间戳 (ms)
+         * acc: 加速度 (m/s?)
+         * gyr: 角速度 (°/s)
+         * mag: 磁场强度 (uT)
+         * pitch/roll/yaw: 俯仰角/横滚角/航向角 (°)
+         * quat: 四元数 (w,x,y,z)
+         * air_pressure: 气压 (Pa)
          */
         ret = snprintf(buf + written, buf_size - written,
             "{\n"
@@ -255,15 +263,15 @@ int hipnuc_dump_packet(hipnuc_raw_t *raw, char *buf, size_t buf_size)
             raw->hi91.air_pressure);
     }
     
-    /* dump 0x92 packet */
+    /* 输出 0x92 整型IMU数据包 */
     else if(raw->hi92.tag == HIPNUC_ID_HI92)
     {
-        /* Format:
-         * temperature: 掳C
-         * acc: m/s虏
-         * gyr: deg/s
-         * mag: uT
-         * pitch/roll/yaw: deg
+        /* 数据格式说明:
+         * temperature: 温度 (°C)
+         * acc: 加速度 (m/s?)
+         * gyr: 角速度 (°/s)
+         * mag: 磁场强度 (uT)
+         * pitch/roll/yaw: 俯仰角/横滚角/航向角 (°)
          */
         ret = snprintf(buf + written, buf_size - written,
             "{\n"
@@ -287,32 +295,32 @@ int hipnuc_dump_packet(hipnuc_raw_t *raw, char *buf, size_t buf_size)
             raw->hi91.quat[0], raw->hi91.quat[1], raw->hi91.quat[2], raw->hi91.quat[3]);
     }
 
-    /* dump 0x81 packet */
+    /* 输出 0x81 INS组合导航数据包 */
 else if(raw->hi81.tag == HIPNUC_ID_HI81)
 {
-    /* Format:
-     * status: device status
-     * ins_status: INS algorithm status
-     * gpst_wn/tow: GPS week number and time of week
-     * gyr: deg/s
-     * acc: m/s虏
-     * mag: uT
-     * air_pressure: Pa
-     * temperature: 掳C
-     * utc: YYYY-MM-DD HH:mm:ss.SSS
-     * pitch/roll/yaw: deg
-     * quat: w,x,y,z
-     * ins_lat/lon: deg
-     * ins_msl: m
-     * pdop/hdop: position/horizontal dilution of precision
-     * solq_pos: 0:invalid 1:SPP 2:DGPS 4:RTK-FLOAT 5:RTK-FIXED
-     * nv_pos: number of satellites used for position
-     * solq_heading: 0:invalid 4:valid
-     * nv_heading: number of satellites used for heading
-     * diff_age: differential age(s)
-     * undulation: geoidal separation(m)
-     * vel_enu: east,north,up velocity(m/s)
-     * acc_enu: east,north,up acceleration(m/s虏)
+    /* 数据格式说明:
+     * status: 设备状态
+     * ins_status: INS算法状态
+     * gpst_wn/tow: GPS周数/周内秒
+     * gyr: 角速度 (°/s)
+     * acc: 加速度 (m/s?)
+     * mag: 磁场强度 (uT)
+     * air_pressure: 气压 (Pa)
+     * temperature: 温度 (°C)
+     * utc: UTC时间 YYYY-MM-DD HH:mm:ss.SSS
+     * pitch/roll/yaw: 俯仰角/横滚角/航向角 (°)
+     * quat: 四元数 (w,x,y,z)
+     * ins_lat/lon: INS纬度/经度 (°)
+     * ins_msl: INS海拔高度 (m)
+     * pdop/hdop: 位置/水平精度因子
+     * solq_pos: 定位质量 0:无效 1:单点 2:差分 4:RTK浮点 5:RTK固定
+     * nv_pos: 定位使用的卫星数
+     * solq_heading: 航向质量 0:无效 4:有效
+     * nv_heading: 航向使用的卫星数
+     * diff_age: 差分龄期 (s)
+     * undulation: 大地水准面差距 (m)
+     * vel_enu: 东/北/天速度 (m/s)
+     * acc_enu: 东/北/天加速度 (m/s?)
      */
     ret = snprintf(buf + written, buf_size - written,
         "{\n"
@@ -385,11 +393,11 @@ else if(raw->hi81.tag == HIPNUC_ID_HI81)
 }
 
 /**
- * @brief    Calculate HiPNUC CRC16
+ * @brief  计算 HiPNUC CRC16 校验值
  *
- * @param    inital is initial value
- * @param    buf    is input buffer pointer
- * @param    len    is length of the buffer
+ * @param  inital CRC初始值指针（累加计算时传入上次结果）
+ * @param  buf    输入数据缓冲区指针
+ * @param  len    缓冲区数据长度
  */
 static void hipnuc_crc16(uint16_t *inital, const uint8_t *buf, uint32_t len)
 {

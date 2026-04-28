@@ -4,7 +4,7 @@
 #include "motor.h" // 引用 motor.h 头文件
 #include "math.h"  // 引用 math.h 头文件，使用 fabs
 
-#define test_p 1
+#define test_p 1    //1:正常模式    2:夹爪上电重装模式
 #define MIN_ERROR 5 // 自瞄允许偏差
 
 /* shared state variables defined once for the entire program */
@@ -779,6 +779,9 @@ void test(void)
 #endif
 
 #if (test_p == 2)
+
+double cnt_angle = 0.0000;
+
 void Auto_mode(void)
 {
 }

@@ -32,7 +32,7 @@
 #define PARAM_DOWN_AGAIN_MS 200     // 夹镖后再次下压延时 (ms)
 #define PARAM_TRIGGER_DELAY_MS 1000 // 板机扣动等待延时 (ms)
 
-#define PARAM_PULL_POSITION -6.9000 // 放镖位置 (rad)
+#define PARAM_PULL_POSITION -6.7000 // 放镖位置 (rad)
 #define PARAM_WAIT_POSITION -7.4000 // 等待装填上升位置，储能电机下拉 (rad)
 
 #define PARAM_FIR_SHOOT_POSITION -6.7000 // 第一发发射位置 (rad)
@@ -48,15 +48,15 @@
 
 // 灵足双轴运动参数 (LZ_double_motor_ctrl 的 pos 偏移值)
 #define PARAM_LZ_HOME_OFFSET       0.0f  // 归原位偏移
-#define PARAM_LZ_CATCH_POS         0.7f  // 夹镖偏移
-#define PARAM_LZ_CLAMP_POS         2.0f  // 夹镖后下压偏移
-#define PARAM_LZ_PUSH_POS          4.7f  // 推镖下压偏移
-#define PARAM_LZ_HALF_DOWN_POS     3.5f  // 推镖半降位置
+#define PARAM_LZ_CATCH_POS         1.8f  // 夹镖偏移
+#define PARAM_LZ_CLAMP_POS         2.5f  // 夹镖后下压偏移
+#define PARAM_LZ_PUSH_POS          4.7f  // 放镖下压偏移
+#define PARAM_LZ_HALF_DOWN_POS     4.0f  // 放镖半降位置
 
 // 中间平移电机参数 (MID_MOTO 绝对位置)
-#define PARAM_MID_SLIDE_LEFT_POS  -3.0f  // MID电机左移取镖位置
+#define PARAM_MID_SLIDE_LEFT_POS  -2.3f  // MID电机左移取镖位置
 #define PARAM_MID_SLIDE_RIGHT_POS  4.5f  // MID电机右移取镖位置
-#define PARAM_MID_HOME_POS         1.0f  // MID电机归中位置
+#define PARAM_MID_HOME_POS         1.1f  // MID电机归中位置
 
 // 左右电机归位参数
 #define PARAM_LR_HOME_POS          1.0f  // 左右电机归位位置
