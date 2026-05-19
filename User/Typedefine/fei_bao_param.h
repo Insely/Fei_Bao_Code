@@ -35,10 +35,10 @@
 #define PARAM_PULL_POSITION -6.7000 // 放镖位置 (rad)
 #define PARAM_WAIT_POSITION -7.4000 // 等待装填上升位置，储能电机下拉 (rad)
 
-#define PARAM_FIR_SHOOT_POSITION -6.7000 // 第一发发射位置 (rad)
-#define PARAM_SEC_SHOOT_POSITION -6.7000 // 第二发发射位置 (rad)
-#define PARAM_THR_SHOOT_POSITION -6.7000 // 第三发发射位置 (rad)
-#define PARAM_FOU_SHOOT_POSITION -6.7000 // 第四发发射位置 (rad)
+#define PARAM_FIR_SHOOT_POSITION -6.8500 // 第一发发射位置 (rad)
+#define PARAM_SEC_SHOOT_POSITION -6.8500 // 第二发发射位置 (rad)
+#define PARAM_THR_SHOOT_POSITION -6.8500 // 第三发发射位置 (rad)
+#define PARAM_FOU_SHOOT_POSITION -6.8500 // 第四发发射位置 (rad)
 
 #define PARAM_STEN_DECEL_ZONE 1         // 储能电机提前减速区间 (rad)
 #define PARAM_STEN_TOLERANCE 0.0100     // 储能电机到位容差 (rad)

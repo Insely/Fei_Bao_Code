@@ -190,7 +190,8 @@ void FSI6XtoRCdata()
     RC_data.rc.s[1]=FSI6X_data.CH6;
     RC_data.rc.s[2]=FSI6X_data.CH7;
     RC_data.rc.s[3]=FSI6X_data.CH8;
-
+    RC_data.rc.s[4]=FSI6X_data.CH9;
+    
    for(int i = 0 ; i<4 ; i++) //ËÀÇøÅÐ¶Ï
    {
     if(fabs(RC_data.rc.ch[i]) < 100)

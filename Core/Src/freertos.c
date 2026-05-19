@@ -259,9 +259,7 @@ void Gimbal_Task(void *argument)
     if (RC_data.rc.s[2] == 1807.0f) //右手内侧拨杆向下
     {
       Save_time_allow = YES;
-      // 
-      shoot_control_mode = AUTO_MODE; //
-      // 
+      shoot_control_mode = AUTO_MODE;
       shoot.Sten_left.mode = POSITION;
       shoot.Sten_right.mode = POSITION;
       shoot.Push_dart.mode = POSITION;
@@ -270,8 +268,7 @@ void Gimbal_Task(void *argument)
     else // 
     {
       Save_time_allow = NO;
-      shoot_control_mode = MANUAL_MODE; //
-                                        // 
+      shoot_control_mode = MANUAL_MODE;
       shoot.Sten_left.mode = VELOCITY;
       shoot.Sten_right.mode = VELOCITY;
       shoot.Push_dart.mode = VELOCITY;

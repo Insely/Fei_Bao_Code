@@ -3,9 +3,10 @@
 #include "reload.h"
 #include "motor.h" // 引用 motor.h 头文件
 #include "math.h"  // 引用 math.h 头文件，使用 fabs
+#include "referee_system.h"
 
-#define test_p 1    //1:正常模式    2:夹爪上电重装模式
-#define MIN_ERROR 5 // 自瞄允许偏差
+#define test_p 1    // 1:正常模式    2:夹爪上电重装模式
+#define MIN_ERROR 1 // 自瞄允许偏差
 
 /* shared state variables defined once for the entire program */
 long point_angle = 0;
@@ -60,7 +61,16 @@ void Manual_mode(void)
         // YAW轴电机控制
         if (RC_data.rc.s[1] == 1807.0f)
         {
-            vision(200, 400, 50);
+            vision(230, 400, 50);
+        }
+        else if (RC_data.rc.s[4] >= 1024.0f)
+        {
+            if (DJIMotor_data[1][0].angle_cnt <= 30000 && DJIMotor_data[1][0].angle_cnt >= -30000)
+                Shoot_set_yaw_root_velocity(RC_data.rc.ch[3]);
+            else if (DJIMotor_data[1][0].angle_cnt >= 30000)
+                Shoot_set_yaw_root_velocity(-500);
+            else if (DJIMotor_data[1][0].angle_cnt <= -30000)
+                Shoot_set_yaw_root_velocity(500);
         }
         else
         {
@@ -78,8 +88,8 @@ void vision(int MIN_SPEED, int MAX_SPEED, int ERROR_SPEED)
 
     if (abs_err >= MIN_ERROR)
     {
-        // 最低为MIN_SPEED的速度，偏移量范围每多出100速度就增加ERROR_SPEED
-        speed = MIN_SPEED + (int)(abs_err / 100.0f) * ERROR_SPEED;
+        // 最低为MIN_SPEED的速度，偏移量范围每多出75速度就增加ERROR_SPEED
+        speed = MIN_SPEED + (int)(abs_err / 75.0f) * ERROR_SPEED;
         // 速度上限最多增加到MAX_SPEED
         if (speed > MAX_SPEED)
             speed = MAX_SPEED;
@@ -128,18 +138,18 @@ double STEN_MOTOR_TOLERANCE = PARAM_STEN_TOLERANCE; // 10010L储能容差
 
 double MOTOR_ANGLE_TOLERANCE = PARAM_LZ_ANGLE_TOLERANCE; // 灵足电机角度容差
 
-double BACK_P = PARAM_BACK_POSITION;              // 储能电机回勾位置
+double BACK_P = PARAM_BACK_POSITION; // 储能电机回勾位置
 
-float LZ_HOME          = PARAM_LZ_HOME_OFFSET;        // 灵足归原位偏移 
-float LZ_CATCH_POS     = PARAM_LZ_CATCH_POS;          // 灵足夹镖便宜
-float LZ_CLAMP_POS     = PARAM_LZ_CLAMP_POS;          // 灵足夹镖下压偏移
-float LZ_PUSH_POS      = PARAM_LZ_PUSH_POS;           // 灵足推镖下压偏移
-float LZ_HALF_DOWN_POS = PARAM_LZ_HALF_DOWN_POS;      // 灵足推镖半降位置
+float LZ_HOME = PARAM_LZ_HOME_OFFSET;            // 灵足归原位偏移
+float LZ_CATCH_POS = PARAM_LZ_CATCH_POS;         // 灵足夹镖便宜
+float LZ_CLAMP_POS = PARAM_LZ_CLAMP_POS;         // 灵足夹镖下压偏移
+float LZ_PUSH_POS = PARAM_LZ_PUSH_POS;           // 灵足推镖下压偏移
+float LZ_HALF_DOWN_POS = PARAM_LZ_HALF_DOWN_POS; // 灵足推镖半降位置
 
-float MID_SLIDE_LEFT   = PARAM_MID_SLIDE_LEFT_POS;    // MID电机左移位置
-float MID_SLIDE_RIGHT  = PARAM_MID_SLIDE_RIGHT_POS;   // MID电机右移位置
-float MID_HOME         = PARAM_MID_HOME_POS;          // MID电机归中位置
-float LR_HOME          = PARAM_LR_HOME_POS;           // 左右电机归位位置
+float MID_SLIDE_LEFT = PARAM_MID_SLIDE_LEFT_POS;   // MID电机左移位置
+float MID_SLIDE_RIGHT = PARAM_MID_SLIDE_RIGHT_POS; // MID电机右移位置
+float MID_HOME = PARAM_MID_HOME_POS;               // MID电机归中位置
+float LR_HOME = PARAM_LR_HOME_POS;                 // 左右电机归位位置
 
 // ######################### 调参区 #########################//
 void test(void)
@@ -151,12 +161,13 @@ void Auto_mode(void)
 
     // 位置-速度双环控制 2006编码器一圈大概为13000
     // 板机复位
-    if (RC_data.rc.s[3] == 240)
+    if (RC_data.rc.s[3] == 240 && dart_client_cmd.dart_launch_opening_status == 0)
     {
+
         Trigger_up();
     }
     // 板机发射
-    if (RC_data.rc.s[3] == 1807)
+    if (RC_data.rc.s[3] == 1807 && dart_client_cmd.dart_launch_opening_status == 0)
     {
         Trigger_down();
     }
