@@ -13,100 +13,6 @@ long point_angle = 0;
 uint8_t shoot_state = 1;
 uint8_t reset_state = 0;
 
-void Fei_Bao_motor_init(void)
-{
-
-    DJIMotor_init(DJI_M3508, YAW_ROOT);
-    DJIMotor_init(DJI_M2006, TRIGGER);
-
-    LZMotor_position_init(MID_MOTO);
-    LZMotor_position_init(RIGHT_MOTO);
-    LZMotor_position_init(LEFT_MOTO);
-}
-
-void Manual_mode(void)
-{
-
-    static int n = 0;
-    static int x = 1;
-
-    if (RC_data.online != -1 && RC_data.rc.s[0] != 240)
-    {
-        // 储能电机10010L控制
-        if (RC_data.rc.ch[1] > 200)
-        {
-            sten_moto_spctrl(2);
-        }
-        else if (RC_data.rc.ch[1] < -200)
-        {
-            sten_moto_spctrl(-2);
-        }
-        else
-        {
-            sten_moto_spctrl(0);
-        }
-
-        // 位置-速度双环控制 2006编码器一圈大概为13000
-        // 板机复位
-        if (RC_data.rc.s[3] == 240)
-        {
-            Trigger_up();
-        }
-        // 板机发射
-        if (RC_data.rc.s[3] == 1807)
-        {
-            Trigger_down();
-        }
-
-        // YAW轴电机控制
-        if (RC_data.rc.s[1] == 1807.0f)
-        {
-            vision(230, 400, 50);
-        }
-        else if (RC_data.rc.s[4] >= 1024.0f)
-        {
-            if (DJIMotor_data[1][0].angle_cnt <= 30000 && DJIMotor_data[1][0].angle_cnt >= -30000)
-                Shoot_set_yaw_root_velocity(RC_data.rc.ch[3]);
-            else if (DJIMotor_data[1][0].angle_cnt >= 30000)
-                Shoot_set_yaw_root_velocity(-500);
-            else if (DJIMotor_data[1][0].angle_cnt <= -30000)
-                Shoot_set_yaw_root_velocity(500);
-        }
-        else
-        {
-            Shoot_set_yaw_root_velocity(RC_data.rc.ch[3]);
-        }
-    }
-}
-
-// 镖架制导
-void vision(int MIN_SPEED, int MAX_SPEED, int ERROR_SPEED)
-{
-    float yaw_err = vision_data.yaw_error;
-    float abs_err = yaw_err > 0 ? yaw_err : -yaw_err;
-    float speed = 0;
-
-    if (abs_err >= MIN_ERROR)
-    {
-        // 最低为MIN_SPEED的速度，偏移量范围每多出75速度就增加ERROR_SPEED
-        speed = MIN_SPEED + (int)(abs_err / 75.0f) * ERROR_SPEED;
-        // 速度上限最多增加到MAX_SPEED
-        if (speed > MAX_SPEED)
-            speed = MAX_SPEED;
-    }
-
-    if (yaw_err >= 0)
-    {
-        Shoot_set_yaw_root_velocity(-speed);
-    }
-    else
-    {
-        Shoot_set_yaw_root_velocity(speed);
-    }
-}
-
-#if (test_p == 1)
-
 // ######################### 调参区 #########################//
 
 double cnt_angle = 0.0000;
@@ -152,12 +58,135 @@ float MID_HOME = PARAM_MID_HOME_POS;               // MID电机归中位置
 float LR_HOME = PARAM_LR_HOME_POS;                 // 左右电机归位位置
 
 // ######################### 调参区 #########################//
+
+void Fei_Bao_motor_init(void)
+{
+
+    DJIMotor_init(DJI_M3508, YAW_ROOT);
+    DJIMotor_init(DJI_M2006, TRIGGER);
+
+    LZMotor_position_init(MID_MOTO);
+    LZMotor_position_init(RIGHT_MOTO);
+    LZMotor_position_init(LEFT_MOTO);
+}
+
+void Manual_mode(void)
+{
+    switch (game_status.game_progress)
+    {
+    case 3:
+        energy_state = FLING_IDLE;
+        fire_state = Stop_Fire;
+        reload_state = reload_non_task;
+        energy_state_start_time = current_time;
+        reload_state_start_time = current_time;
+        fire_state_start_time = current_time;
+    }
+
+    static int n = 0;
+    static int x = 1;
+
+    if (RC_data.online != -1 && RC_data.rc.s[0] != 240)
+    {
+        // 储能电机10010L控制
+        if (RC_data.rc.ch[1] > 200)
+        {
+            sten_moto_spctrl(2);
+        }
+        else if (RC_data.rc.ch[1] < -200)
+        {
+            sten_moto_spctrl(-2);
+        }
+        else
+        {
+            sten_moto_spctrl(0);
+        }
+
+        // 位置-速度双环控制 2006编码器一圈大概为13000
+        // 板机复位
+        if (RC_data.rc.s[3] == 240)
+        {
+            Trigger_up();
+        }
+        // 板机发射
+        if (RC_data.rc.s[3] == 1807)
+        {
+            Trigger_down();
+        }
+
+        // YAW轴电机控制
+        if (RC_data.rc.s[1] == 1807.0f)
+        {
+            vision(230, 400, 50);
+        }
+        else if (RC_data.rc.s[4] >= 1024.0f)
+        {
+            if (DJIMotor_data[1][0].angle_cnt <= 10000 && DJIMotor_data[1][0].angle_cnt >= -20000)
+                Shoot_set_yaw_root_velocity(RC_data.rc.ch[3]);
+            else if (DJIMotor_data[1][0].angle_cnt >= 10000)
+                Shoot_set_yaw_root_velocity(-500);
+            else if (DJIMotor_data[1][0].angle_cnt <= -20000)
+                Shoot_set_yaw_root_velocity(500);
+        }
+        else
+        {
+            Shoot_set_yaw_root_velocity(RC_data.rc.ch[3]);
+        }
+    }
+}
+
+// 镖架制导
+void vision(int MIN_SPEED, int MAX_SPEED, int ERROR_SPEED)
+{
+    float yaw_err = vision_data.yaw_error;
+    float abs_err = yaw_err > 0 ? yaw_err : -yaw_err;
+    float speed = 0;
+
+    if (abs_err >= MIN_ERROR)
+    {
+        // 最低为MIN_SPEED的速度，偏移量范围每多出75速度就增加ERROR_SPEED
+        speed = MIN_SPEED + (int)(abs_err / 75.0f) * ERROR_SPEED;
+        // 速度上限最多增加到MAX_SPEED
+        if (speed > MAX_SPEED)
+            speed = MAX_SPEED;
+    }
+
+    if (yaw_err >= 0)
+    {
+        Shoot_set_yaw_root_velocity(-speed);
+    }
+    else
+    {
+        Shoot_set_yaw_root_velocity(speed);
+    }
+}
+
+#if (test_p == 1)
+
 void test(void)
 {
 }
 
 void Auto_mode(void)
 {
+    // YAW轴电机控制
+    if (RC_data.rc.s[1] == 1807.0f)
+    {
+        vision(230, 400, 50);
+    }
+    else if (RC_data.rc.s[4] >= 1024.0f)
+    {
+        if (DJIMotor_data[1][0].angle_cnt <= 10000 && DJIMotor_data[1][0].angle_cnt >= -20000)
+            Shoot_set_yaw_root_velocity(RC_data.rc.ch[3]);
+        else if (DJIMotor_data[1][0].angle_cnt >= 10000)
+            Shoot_set_yaw_root_velocity(-500);
+        else if (DJIMotor_data[1][0].angle_cnt <= -20000)
+            Shoot_set_yaw_root_velocity(500);
+    }
+    else
+    {
+        Shoot_set_yaw_root_velocity(RC_data.rc.ch[3]);
+    }
 
     // 位置-速度双环控制 2006编码器一圈大概为13000
     // 板机复位
@@ -167,7 +196,7 @@ void Auto_mode(void)
         Trigger_up();
     }
     // 板机发射
-    if (RC_data.rc.s[3] == 1807 && dart_client_cmd.dart_launch_opening_status == 0)
+    if (RC_data.rc.s[3] == 1807 && dart_client_cmd.dart_launch_opening_status == 0 && fire_state != Stop_Fire)
     {
         Trigger_down();
     }
@@ -213,8 +242,30 @@ void Auto_mode(void)
         last_raw_pos = current_raw_pos;
     }
 
+    static uint8_t last_game_progress = 0;
     if (zero == 1)
     {
+        // 上升沿检测：只在 game_progress 从非3变为3时复位一次
+        // if (game_status.game_progress == 3 && last_game_progress != 3)
+        // {
+        //     energy_state = FLING_IDLE;
+        //     fire_state = Stop_Fire;
+        //     reload_state = reload_non_task;
+        //     energy_state_start_time = current_time;
+        //     reload_state_start_time = current_time;
+        //     fire_state_start_time = current_time;
+        // }
+        last_game_progress = game_status.game_progress;
+        switch (game_status.game_progress)
+        {
+        case 3:
+            energy_state = FLING_IDLE;
+            fire_state = Stop_Fire;
+            reload_state = reload_non_task;
+            energy_state_start_time = current_time;
+            reload_state_start_time = current_time;
+            fire_state_start_time = current_time;
+        }
         //--------------------------------------------------//
         //-----------------------储能-----------------------//
         //-------------------------------------------------//
@@ -266,7 +317,10 @@ void Auto_mode(void)
 
             if (back())
             {
-                energy_state = Sec_Ready;
+                if (reset_state == 0 && shoot_state == 1)
+                {
+                    energy_state = Sec_Ready;
+                }
             }
 
             break;
@@ -306,7 +360,11 @@ void Auto_mode(void)
 
             if (back())
             {
-                energy_state = Thr_Ready;
+                if (reset_state == 0 && shoot_state == 1)
+                {
+
+                    energy_state = Thr_Ready;
+                }
             }
 
             break;
@@ -346,7 +404,11 @@ void Auto_mode(void)
 
             if (back())
             {
-                energy_state = Fou_Ready;
+                if (reset_state == 0 && shoot_state == 1)
+                {
+
+                    energy_state = Fou_Ready;
+                }
             }
 
             break;
@@ -386,8 +448,11 @@ void Auto_mode(void)
 
             if (back())
             {
-                keep_ps = cnt_angle;
-                energy_state = Keep_position;
+                if (reset_state == 0 && shoot_state == 1)
+                {
+                    keep_ps = cnt_angle;
+                    energy_state = Keep_position;
+                }
             }
 
             break;

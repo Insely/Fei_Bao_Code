@@ -30,7 +30,7 @@ unpack_data_t referee_image_unpack_obj;
 frame_header_struct_t referee_receive_header; // 接收数据帧头
 frame_header_struct_t referee_send_header;    // 发送数据帧头
 /*----------- 赛制相关数据 -----------*/
-ext_game_status_t game_status;         // 比赛状态数据(1Hz)
+volatile ext_game_status_t game_status;         // 比赛状态数据(1Hz)
 ext_game_result_t game_result;         // 比赛结果数据(比赛结束后发送)
 ext_game_robot_HP_t game_robot_HP;     // 机器人血量数据
 ext_referee_warning_t referee_warning; // 裁判警告信息

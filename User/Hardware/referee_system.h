@@ -30,9 +30,19 @@ typedef struct // 自定义结构体，需在函数中赋值，然后在 FREERTOS 里调用  后续可根
 
 
 /********************
-****game_type比赛类型1：RoboMaster 机甲大师超级对抗赛2：RoboMaster 机甲大师高校单项赛
-                                        3：ICRA RoboMaster 高校人工智能挑战赛 4：RoboMaster 机甲大师高校联盟赛 3V3 对抗5：RoboMaster 机甲大师高校联盟赛步兵对抗
-game_progress 当前比赛阶段0：未开始比赛1：准备阶段2：自检阶段3：5 秒倒计时4：比赛中 5：比赛结算中
+****game_type比赛类型
+1：RoboMaster 机甲大师超级对抗赛
+2：RoboMaster 机甲大师高校单项赛
+3：ICRA RoboMaster 高校人工智能挑战赛 
+4：RoboMaster 机甲大师高校联盟赛 3V3 对抗
+5：RoboMaster 机甲大师高校联盟赛步兵对抗
+game_progress 当前比赛阶段
+0：未开始比赛
+1：准备阶段
+2：自检阶段
+3：5 秒倒计时
+4：比赛中 
+5：比赛结算中
 stage_remain_time  当前阶段剩余时间 s
 ***/
 
@@ -549,6 +559,8 @@ extern fifo_s_t referee_image_fifo;
 extern unpack_data_t referee_unpack_obj;
 extern unpack_data_t referee_image_unpack_obj;
 extern ext_dart_client_cmd_t dart_client_cmd;
+extern volatile ext_game_status_t game_status;         // 比赛状态数据(1Hz)
+
 
 void Refree_system_init(void);
 void Referee_unpack_fifo_data(fifo_s_t* p_fifo,unpack_data_t* p_obj);

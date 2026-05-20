@@ -30,7 +30,7 @@
 
 #define PARAM_SERVO_DELAY_MS 300    // 放镖舵机等待延时 (ms)
 #define PARAM_DOWN_AGAIN_MS 200     // 夹镖后再次下压延时 (ms)
-#define PARAM_TRIGGER_DELAY_MS 1000 // 板机扣动等待延时 (ms)
+#define PARAM_TRIGGER_DELAY_MS 300 // 板机扣动等待延时 (ms)
 
 #define PARAM_PULL_POSITION -6.7000 // 放镖位置 (rad)
 #define PARAM_WAIT_POSITION -7.4000 // 等待装填上升位置，储能电机下拉 (rad)
