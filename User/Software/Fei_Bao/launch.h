@@ -17,11 +17,10 @@ extern long point_angle;
 extern uint8_t shoot_state;
 extern uint8_t reset_state;
 
-extern Energy_State energy_state;
+extern EnergyFSM_t energy_fsm;
+extern ReloadFSM_t reload_fsm;
+extern FireFSM_t   fire_fsm;
 
-extern uint32_t energy_state_start_time;
-extern uint32_t reload_state_start_time;
-extern uint32_t fire_state_start_time;
 extern uint32_t current_time;
 extern uint32_t SERVO_DELAY_MS;   // 舵机延时
 extern uint32_t TRIGGER_DELAY_MS; // 拨弹�?等待延�??

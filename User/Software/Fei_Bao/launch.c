@@ -1,35 +1,43 @@
 #include "launch.h"
 #include "need_h.h"
 #include "reload.h"
-#include "motor.h" // 引用 motor.h 头文件
-#include "math.h"  // 引用 math.h 头文件，使用 fabs
+#include "motor.h"
+#include "math.h"
 #include "referee_system.h"
 
-#define test_p 1    // 1:正常模式    2:夹爪上电重装模式
-#define MIN_ERROR 1 // 自瞄允许偏差
+#define test_p 1 // 1:正常模式  2:夹爪上电重装模式
 
-/* shared state variables defined once for the entire program */
+/* ==================== 常量定义 ==================== */
+
+// DM电机找零参数
+#define DM_ZERO_LOW       0.95f   // DM电机找零位置下限
+#define DM_ZERO_HIGH      1.05f   // DM电机找零位置上限
+
+// 遥控器
+#define STICK_DEADZONE    200     // 摇杆死区
+#define SW_POS_DOWN       240     // 拨杆下位值
+#define SW_POS_UP         1807    // 拨杆上位值
+
+/* ==================== 全局状态变量 ==================== */
+
 long point_angle = 0;
 uint8_t shoot_state = 1;
 uint8_t reset_state = 0;
 
-// ######################### 调参区 #########################//
-
-double cnt_angle = 0.0000;
+double cnt_angle = 0.0;
 static int zero = 0;
-uint32_t energy_state_start_time = 0;
-uint32_t reload_state_start_time = 0;
-uint32_t fire_state_start_time = 0;
 uint32_t current_time;
 
-Energy_State energy_state = FLING_IDLE;
-ReloadState_t reload_state = reload_non_task;
-FirState_t fire_state = Stop_Fire;
-double keep_ps = 0.0; // Keep_position 状态时保持的电机位置
+// 三个状态机上下文
+EnergyFSM_t energy_fsm = {FLING_IDLE, 0, 0.0};
+ReloadFSM_t reload_fsm = {reload_non_task, 0};
+FireFSM_t   fire_fsm   = {Stop_Fire, 0};
+
+/* ==================== 调参区 ==================== */
 
 uint32_t SERVO_DELAY_MS = PARAM_SERVO_DELAY_MS;     // 放镖延时
 uint32_t DOWN_AGAIN_MS = PARAM_DOWN_AGAIN_MS;       // 再次下降延时
-uint32_t TRIGGER_DELAY_MS = PARAM_TRIGGER_DELAY_MS; // 板机扣动延时
+uint32_t TRIGGER_DELAY_MS = PARAM_TRIGGER_DELAY_MS; // 扳机扣动延时
 
 double PULL_P = PARAM_PULL_POSITION; // 上镖位置
 double WAIT_P = PARAM_WAIT_POSITION; // 等待上移位置
@@ -40,14 +48,14 @@ double Thr_P = PARAM_THR_SHOOT_POSITION; // 第三发发射位置
 double Fou_P = PARAM_FOU_SHOOT_POSITION; // 第四发发射位置
 
 double LOW_SPEED = PARAM_STEN_DECEL_ZONE;           // 提前减速区间
-double STEN_MOTOR_TOLERANCE = PARAM_STEN_TOLERANCE; // 10010L储能容差
+double STEN_MOTOR_TOLERANCE = PARAM_STEN_TOLERANCE;  // 10010L储能容差
 
 double MOTOR_ANGLE_TOLERANCE = PARAM_LZ_ANGLE_TOLERANCE; // 灵足电机角度容差
 
 double BACK_P = PARAM_BACK_POSITION; // 储能电机回勾位置
 
 float LZ_HOME = PARAM_LZ_HOME_OFFSET;            // 灵足归原位偏移
-float LZ_CATCH_POS = PARAM_LZ_CATCH_POS;         // 灵足夹镖便宜
+float LZ_CATCH_POS = PARAM_LZ_CATCH_POS;         // 灵足夹镖偏移
 float LZ_CLAMP_POS = PARAM_LZ_CLAMP_POS;         // 灵足夹镖下压偏移
 float LZ_PUSH_POS = PARAM_LZ_PUSH_POS;           // 灵足推镖下压偏移
 float LZ_HALF_DOWN_POS = PARAM_LZ_HALF_DOWN_POS; // 灵足推镖半降位置
@@ -57,11 +65,10 @@ float MID_SLIDE_RIGHT = PARAM_MID_SLIDE_RIGHT_POS; // MID电机右移位置
 float MID_HOME = PARAM_MID_HOME_POS;               // MID电机归中位置
 float LR_HOME = PARAM_LR_HOME_POS;                 // 左右电机归位位置
 
-// ######################### 调参区 #########################//
+/* ==================== 电机初始化 ==================== */
 
 void Fei_Bao_motor_init(void)
 {
-
     DJIMotor_init(DJI_M3508, YAW_ROOT);
     DJIMotor_init(DJI_M2006, TRIGGER);
 
@@ -70,1131 +77,479 @@ void Fei_Bao_motor_init(void)
     LZMotor_position_init(LEFT_MOTO);
 }
 
+/* ==================== 手动模式 ==================== */
+
 void Manual_mode(void)
 {
     switch (game_status.game_progress)
     {
     case 3:
-        energy_state = FLING_IDLE;
-        fire_state = Stop_Fire;
-        reload_state = reload_non_task;
-        energy_state_start_time = current_time;
-        reload_state_start_time = current_time;
-        fire_state_start_time = current_time;
+        reset_all_fsm();
+        break;
+    default:
+        break;
     }
 
-    static int n = 0;
-    static int x = 1;
-
-    if (RC_data.online != -1 && RC_data.rc.s[0] != 240)
+    if (RC_data.online != -1 && RC_data.rc.s[0] != SW_POS_DOWN)
     {
-        // 储能电机10010L控制
-        if (RC_data.rc.ch[1] > 200)
-        {
+        // 储能电机手动控制
+        if (RC_data.rc.ch[1] > STICK_DEADZONE)
             sten_moto_spctrl(2);
-        }
-        else if (RC_data.rc.ch[1] < -200)
-        {
+        else if (RC_data.rc.ch[1] < -STICK_DEADZONE)
             sten_moto_spctrl(-2);
-        }
         else
-        {
             sten_moto_spctrl(0);
-        }
 
-        // 位置-速度双环控制 2006编码器一圈大概为13000
-        // 板机复位
-        if (RC_data.rc.s[3] == 240)
-        {
+        // 扳机控制
+        if (RC_data.rc.s[3] == SW_POS_DOWN)
             Trigger_up();
-        }
-        // 板机发射
-        if (RC_data.rc.s[3] == 1807)
-        {
+        if (RC_data.rc.s[3] == SW_POS_UP)
             Trigger_down();
-        }
 
-        // YAW轴电机控制
-        if (RC_data.rc.s[1] == 1807.0f)
-        {
-            vision(230, 400, 50);
-        }
-        else if (RC_data.rc.s[4] >= 1024.0f)
-        {
-            if (DJIMotor_data[1][0].angle_cnt <= 10000 && DJIMotor_data[1][0].angle_cnt >= -20000)
-                Shoot_set_yaw_root_velocity(RC_data.rc.ch[3]);
-            else if (DJIMotor_data[1][0].angle_cnt >= 10000)
-                Shoot_set_yaw_root_velocity(-500);
-            else if (DJIMotor_data[1][0].angle_cnt <= -20000)
-                Shoot_set_yaw_root_velocity(500);
-        }
-        else
-        {
-            Shoot_set_yaw_root_velocity(RC_data.rc.ch[3]);
-        }
+        // YAW轴
+        yaw_control();
     }
 }
 
-// 镖架制导
-void vision(int MIN_SPEED, int MAX_SPEED, int ERROR_SPEED)
-{
-    float yaw_err = vision_data.yaw_error;
-    float abs_err = yaw_err > 0 ? yaw_err : -yaw_err;
-    float speed = 0;
-
-    if (abs_err >= MIN_ERROR)
-    {
-        // 最低为MIN_SPEED的速度，偏移量范围每多出75速度就增加ERROR_SPEED
-        speed = MIN_SPEED + (int)(abs_err / 75.0f) * ERROR_SPEED;
-        // 速度上限最多增加到MAX_SPEED
-        if (speed > MAX_SPEED)
-            speed = MAX_SPEED;
-    }
-
-    if (yaw_err >= 0)
-    {
-        Shoot_set_yaw_root_velocity(-speed);
-    }
-    else
-    {
-        Shoot_set_yaw_root_velocity(speed);
-    }
-}
+/* ==================== 自动模式 ==================== */
 
 #if (test_p == 1)
 
-void test(void)
-{
-}
+void test(void) {}
 
 void Auto_mode(void)
 {
-    // YAW轴电机控制
-    if (RC_data.rc.s[1] == 1807.0f)
-    {
-        vision(230, 400, 50);
-    }
-    else if (RC_data.rc.s[4] >= 1024.0f)
-    {
-        if (DJIMotor_data[1][0].angle_cnt <= 10000 && DJIMotor_data[1][0].angle_cnt >= -20000)
-            Shoot_set_yaw_root_velocity(RC_data.rc.ch[3]);
-        else if (DJIMotor_data[1][0].angle_cnt >= 10000)
-            Shoot_set_yaw_root_velocity(-500);
-        else if (DJIMotor_data[1][0].angle_cnt <= -20000)
-            Shoot_set_yaw_root_velocity(500);
-    }
-    else
-    {
-        Shoot_set_yaw_root_velocity(RC_data.rc.ch[3]);
-    }
+    // YAW轴控制
+    yaw_control();
 
-    // 位置-速度双环控制 2006编码器一圈大概为13000
-    // 板机复位
-    if (RC_data.rc.s[3] == 240 && dart_client_cmd.dart_launch_opening_status == 0)
-    {
-
+    // 扳机控制
+    if (RC_data.rc.s[3] == SW_POS_DOWN && dart_client_cmd.dart_launch_opening_status == 0)
         Trigger_up();
-    }
-    // 板机发射
-    if (RC_data.rc.s[3] == 1807 && dart_client_cmd.dart_launch_opening_status == 0 && fire_state != Stop_Fire)
-    {
+    if (RC_data.rc.s[3] == SW_POS_UP && dart_client_cmd.dart_launch_opening_status == 0 && fire_fsm.state != Stop_Fire)
         Trigger_down();
-    }
 
     current_time = HAL_GetTick();
-    if (zero == 0) // 找最近零点
+
+    /* ---------- 找零 & 多圈处理 ---------- */
+    if (zero == 0)
     {
         find_zero();
-        if (DM_Motor_data[0][0].motor_data.para.pos >= 0.95 && DM_Motor_data[0][0].motor_data.para.pos <= 1.05 && DM_Motor_data[0][0].motor_data.para.pos != 0.00000000)
+        float pos = DM_Motor_data[0][0].motor_data.para.pos;
+        if (pos >= DM_ZERO_LOW && pos <= DM_ZERO_HIGH && pos != 0.0f)
         {
-            energy_state = FLING_IDLE;
+            energy_fsm.state = FLING_IDLE;
             find_zero();
             zero = 1;
         }
     }
-    else if (zero == 1) // 多圈处理
+    else if (zero == 1)
     {
-        // 定义状态变量（需在循环外定义或使用static）
-        static double last_raw_pos = 0.0000;
-        static int32_t round_count = 0;
-
-        // 1. 获取当前原始位置
-        float current_raw_pos = DM_Motor_data[0][0].motor_data.para.pos;
-
-        // 2. 检测数值跳变
-        // 判定阈值通常取全量程的一半（即 12.5）
-        if (current_raw_pos - last_raw_pos < -12.5f)
-        {
-            // 正向转过临界点：数值从 12.5 跳到 -12.5
-            round_count++;
-        }
-        else if (current_raw_pos - last_raw_pos > 12.5f)
-        {
-            // 反向转过临界点：数值从 -12.5 跳到 12.5
-            round_count--;
-        }
-
-        // 3. 计算多圈累计角度
-        // 累计角度 = 圈数 * 全量程 + 当前原始位置
-        cnt_angle = (float)round_count * 25.00000 + current_raw_pos;
-
-        // 4. 更新上一时刻位置，用于下次计算
-        last_raw_pos = current_raw_pos;
+        multi_turn_update();
     }
 
-    static uint8_t last_game_progress = 0;
-    if (zero == 1)
+    if (zero != 1)
+        return; // 未完成找零，不运行状态机
+
+    /* ---------- 比赛阶段检查 ---------- */
+    switch (game_status.game_progress)
     {
-        // 上升沿检测：只在 game_progress 从非3变为3时复位一次
-        // if (game_status.game_progress == 3 && last_game_progress != 3)
-        // {
-        //     energy_state = FLING_IDLE;
-        //     fire_state = Stop_Fire;
-        //     reload_state = reload_non_task;
-        //     energy_state_start_time = current_time;
-        //     reload_state_start_time = current_time;
-        //     fire_state_start_time = current_time;
-        // }
-        last_game_progress = game_status.game_progress;
-        switch (game_status.game_progress)
+    case 3:
+        reset_all_fsm();
+        break;
+    default:
+        break;
+    }
+
+    /* ================== 储能状态机 ================== */
+    switch (energy_fsm.state)
+    {
+    case FLING_IDLE:
+        energy_fsm.state      = Reset_Motor;
+        energy_fsm.start_time = current_time;
+        break;
+
+    case Reset_Motor:
+        sten_moto_spctrl(0);
+        LZMotor_set_pos_param(LEFT_MOTO, LR_HOME, 5);
+        LZMotor_set_pos_param(RIGHT_MOTO, LR_HOME, 5);
+        LZMotor_set_pos_param(MID_MOTO, MID_HOME, 5);
+        C_dart();
+        if (fabs(GET_LZ_MOTOR_ANGLE(LEFT_MOTO) - LR_HOME) < MOTOR_ANGLE_TOLERANCE &&
+            fabs(GET_LZ_MOTOR_ANGLE(RIGHT_MOTO) - LR_HOME) < MOTOR_ANGLE_TOLERANCE &&
+            fabs(GET_LZ_MOTOR_ANGLE(MID_MOTO) - MID_HOME) < MOTOR_ANGLE_TOLERANCE)
         {
-        case 3:
-            energy_state = FLING_IDLE;
-            fire_state = Stop_Fire;
-            reload_state = reload_non_task;
-            energy_state_start_time = current_time;
-            reload_state_start_time = current_time;
-            fire_state_start_time = current_time;
+            energy_fsm.state      = Fir_Ready;
+            energy_fsm.start_time = current_time;
         }
-        //--------------------------------------------------//
-        //-----------------------储能-----------------------//
-        //-------------------------------------------------//
-        switch (energy_state)
+        break;
+
+    case Fir_Ready: // 第一次储能
+        if (position_ready(PULL_P))
+            energy_fsm.state = Fir_Shoot_Ready;
+        break;
+
+    case Fir_Shoot_Ready:
+        if (position_ready(Fir_P))
+            fire_fsm.state = Fir_Fire;
+        break;
+
+    case Fir_Back:
+        if (back() && reset_state == 0 && shoot_state == 1)
+            energy_fsm.state = Sec_Ready;
+        break;
+
+    case Sec_Ready: // 等待放镖 + 等待装填半降完成
+        if (position_ready(PULL_P) && reload_fsm.state == Fir_Half_Down_Finish)
         {
-        case FLING_IDLE:
-            // 初始状态，等待开始或切换到复位
-            // 用户可能通过某种外部信号触发开始，这里我们假设它被调用时就是开始
-            energy_state = Reset_Motor;
-            energy_state_start_time = current_time;
-            break;
-
-        case Reset_Motor:
-
-            // 首先全部电机位置归零
-            sten_moto_spctrl(0);
-            LZMotor_set_pos_param(LEFT_MOTO, LR_HOME, 5);
-            LZMotor_set_pos_param(RIGHT_MOTO, LR_HOME, 5);
-            LZMotor_set_pos_param(MID_MOTO, MID_HOME, 5);
-            C_dart();
-            if (fabs(GET_LZ_MOTOR_ANGLE(LEFT_MOTO) - LR_HOME) < MOTOR_ANGLE_TOLERANCE &&
-                fabs(GET_LZ_MOTOR_ANGLE(RIGHT_MOTO) - LR_HOME) < MOTOR_ANGLE_TOLERANCE &&
-                fabs(GET_LZ_MOTOR_ANGLE(MID_MOTO) - MID_HOME) < MOTOR_ANGLE_TOLERANCE)
-            {
-                energy_state = Fir_Ready;
-                energy_state_start_time = current_time;
-            }
-            break;
-
-        case Fir_Ready: // 第一次储能
-
-            if (position_ready(PULL_P))
-            {
-                energy_state = Fir_Shoot_Ready;
-            }
-
-            break;
-
-        case Fir_Shoot_Ready:
-
-            if (position_ready(Fir_P))
-            {
-                fire_state = Fir_Fire;
-            }
-
-            break;
-
-        case Fir_Back:
-
-            if (back())
-            {
-                if (reset_state == 0 && shoot_state == 1)
-                {
-                    energy_state = Sec_Ready;
-                }
-            }
-
-            break;
-
-        case Sec_Ready: // 等待放镖
-
-            if (position_ready(PULL_P) && reload_state == Fir_Half_Down_Finish)
-            {
-                reload_state = Fir_Down;
-                keep_ps = cnt_angle;
-                energy_state = Keep_position;
-            }
-
-            break;
-
-        case Fir_Wait:
-
-            if (position_ready(WAIT_P) && reload_state == reload_non_task) // 储能电机下拉，等待灵足电机上升
-            {
-                reload_state = Fir_up;
-                keep_ps = cnt_angle;
-                energy_state = Keep_position;
-            }
-
-            break;
-
-        case Sec_Shoot_Ready:
-
-            if (position_ready(Sec_P))
-            {
-                fire_state = Sec_Fire;
-            }
-
-            break;
-
-        case Sec_Back:
-
-            if (back())
-            {
-                if (reset_state == 0 && shoot_state == 1)
-                {
-
-                    energy_state = Thr_Ready;
-                }
-            }
-
-            break;
-
-        case Thr_Ready: // 第三次储能，等待装填完成L_Back后汇合
-
-            if (position_ready(PULL_P) && reload_state == Sec_Half_Down_Finish)
-            {
-                reload_state = Sec_Down;
-                keep_ps = cnt_angle;
-                energy_state = Keep_position;
-            }
-
-            break;
-
-        case Sec_Wait:
-
-            if (position_ready(WAIT_P) && reload_state == reload_non_task) // 储能电机下拉，等待灵足电机上升
-            {
-                reload_state = Sec_Up;
-                keep_ps = cnt_angle;
-                energy_state = Keep_position;
-            }
-
-            break;
-
-        case Thr_Shoot_Ready:
-
-            if (position_ready(Thr_P))
-            {
-                fire_state = Thr_Fire;
-            }
-
-            break;
-
-        case Thr_Back:
-
-            if (back())
-            {
-                if (reset_state == 0 && shoot_state == 1)
-                {
-
-                    energy_state = Fou_Ready;
-                }
-            }
-
-            break;
-
-        case Fou_Ready: // 第四次储能，等待装填完成R_Back后汇合
-
-            if (position_ready(PULL_P) && reload_state == Thr_Half_Down_Finish)
-            {
-                reload_state = Thr_Down;
-                keep_ps = cnt_angle;
-                energy_state = Keep_position;
-            }
-
-            break;
-
-        case Thr_Wait:
-
-            if (position_ready(WAIT_P) && reload_state == reload_non_task) // 储能电机下拉，等待灵足电机上升
-            {
-                reload_state = Thr_Up;
-                keep_ps = cnt_angle;
-                energy_state = Keep_position;
-            }
-
-            break;
-
-        case Fou_Shoot_Ready:
-
-            if (position_ready(Fou_P))
-            {
-                fire_state = Fou_Fire;
-            }
-
-            break;
-
-        case Fou_Back:
-
-            if (back())
-            {
-                if (reset_state == 0 && shoot_state == 1)
-                {
-                    keep_ps = cnt_angle;
-                    energy_state = Keep_position;
-                }
-            }
-
-            break;
-
-        case Keep_position:
-
-            position_ready(keep_ps);
-
-            break;
+            reload_fsm.state     = Fir_Down;
+            energy_fsm.keep_pos  = cnt_angle;
+            energy_fsm.state     = Keep_position;
         }
+        break;
 
-        //--------------------------------------------------//
-        //-----------------------装填-----------------------//
-        //-------------------------------------------------//
-
-        switch (reload_state)
+    case Fir_Wait: // 储能电机下拉，等待灵足上升
+        if (position_ready(WAIT_P) && reload_fsm.state == reload_non_task)
         {
-
-        case Fir_Half_Down:
-
-            if (LZ_double_motor_ctrl(LZ_HALF_DOWN_POS))
-            {
-                reload_state = Fir_Half_Down_Finish;
-            }
-
-            break;
-
-        case Fir_Half_Down_Finish:
-            // 等待储能状态机汇合，由 Sec_Ready 检测此状态后触发 Fir_Down
-            break;
-
-        case Fir_Down:
-
-            if (LZ_double_motor_ctrl(LZ_PUSH_POS))
-            {
-                reload_state = Fir_Push;
-            }
-
-            break;
-
-        case Fir_Push:
-            P_dart();
-            if (current_time - reload_state_start_time >= SERVO_DELAY_MS)
-            {
-                energy_state = Fir_Wait;
-                reload_state = reload_non_task;
-                reload_state_start_time = current_time;
-            }
-            break;
-
-        case Fir_up:
-            if (LZ_double_motor_ctrl(LZ_HOME))
-            {
-                if (current_time - reload_state_start_time >= TRIGGER_DELAY_MS)
-                {
-                    energy_state = Sec_Shoot_Ready;
-                    reload_state = reload_non_task;
-                    reload_state_start_time = current_time;
-                }
-            }
-            break;
-
-        case L_Go:
-            P_dart();
-            LZMotor_set_pos_param(MID_MOTO, MID_SLIDE_LEFT, 5);
-            if (fabs(GET_LZ_MOTOR_ANGLE(MID_MOTO) - MID_SLIDE_LEFT) < MOTOR_ANGLE_TOLERANCE)
-            {
-                reload_state = L_Down;
-                reload_state_start_time = current_time;
-            }
-            break;
-
-        case L_Down:
-
-            if (LZ_double_motor_ctrl(LZ_CATCH_POS))
-            {
-                reload_state = L_Catch;
-            }
-
-            break;
-
-        case L_Catch:
-            C_dart();
-            if (current_time - reload_state_start_time >= DOWN_AGAIN_MS)
-            {
-                reload_state = L_Down_Again;
-                reload_state_start_time = current_time;
-            }
-            break;
-
-        case L_Down_Again:
-
-            if (LZ_double_motor_ctrl(LZ_CLAMP_POS))
-            {
-                reload_state = L_Up;
-            }
-
-            break;
-
-        case L_Up:
-
-            if (LZ_double_motor_ctrl(LZ_HOME))
-            {
-                reload_state = L_Back;
-            }
-
-            break;
-
-        case L_Back:
-            LZMotor_set_pos_param(MID_MOTO, MID_HOME, 5);
-            if (fabs(GET_LZ_MOTOR_ANGLE(MID_MOTO) - MID_HOME) < MOTOR_ANGLE_TOLERANCE)
-            {
-                reload_state = Sec_Half_Down;
-                reload_state_start_time = current_time;
-            }
-            break;
-
-        case Sec_Half_Down:
-
-            if (LZ_double_motor_ctrl(LZ_HALF_DOWN_POS))
-            {
-                reload_state = Sec_Half_Down_Finish;
-            }
-
-            break;
-
-        case Sec_Half_Down_Finish:
-            // 等待储能状态机汇合，由 Thr_Ready 检测此状态后触发 Sec_Down
-            break;
-
-        case Sec_Down:
-
-            if (LZ_double_motor_ctrl(LZ_PUSH_POS))
-            {
-                reload_state = Sec_Push;
-            }
-
-            break;
-
-        case Sec_Push:
-            P_dart();
-            if (current_time - reload_state_start_time >= SERVO_DELAY_MS)
-            {
-                energy_state = Sec_Wait;
-                reload_state = reload_non_task;
-                reload_state_start_time = current_time;
-            }
-            break;
-
-        case Sec_Up:
-
-            if (LZ_double_motor_ctrl(LZ_HOME))
-            {
-                energy_state = Thr_Shoot_Ready;
-                reload_state = reload_non_task;
-            }
-
-            break;
-
-        case R_Go:
-            P_dart();
-            LZMotor_set_pos_param(MID_MOTO, MID_SLIDE_RIGHT, 5);
-            if (fabs(GET_LZ_MOTOR_ANGLE(MID_MOTO) - MID_SLIDE_RIGHT) < MOTOR_ANGLE_TOLERANCE)
-            {
-                reload_state = R_Down;
-                reload_state_start_time = current_time;
-            }
-            break;
-
-        case R_Down:
-
-            if (LZ_double_motor_ctrl(LZ_CATCH_POS))
-            {
-                reload_state = R_Catch;
-            }
-
-            break;
-
-        case R_Catch:
-            C_dart();
-            if (current_time - reload_state_start_time >= DOWN_AGAIN_MS)
-            {
-                reload_state = R_Down_Again;
-                reload_state_start_time = current_time;
-            }
-            break;
-
-        case R_Down_Again:
-
-            if (LZ_double_motor_ctrl(LZ_CLAMP_POS))
-            {
-                reload_state = R_Up;
-            }
-
-            break;
-
-        case R_Up:
-
-            if (LZ_double_motor_ctrl(LZ_HOME))
-            {
-                reload_state = R_Back;
-            }
-
-            break;
-
-        case R_Back:
-            LZMotor_set_pos_param(MID_MOTO, MID_HOME, 5);
-            if (fabs(GET_LZ_MOTOR_ANGLE(MID_MOTO) - MID_HOME) < MOTOR_ANGLE_TOLERANCE)
-            {
-                reload_state = Thr_Half_Down;
-                reload_state_start_time = current_time;
-            }
-            break;
-
-        case Thr_Half_Down:
-
-            if (LZ_double_motor_ctrl(LZ_HALF_DOWN_POS))
-            {
-                reload_state = Thr_Half_Down_Finish;
-            }
-
-            break;
-
-        case Thr_Half_Down_Finish:
-            // 等待储能状态机汇合，由 Fou_Ready 检测此状态后触发 Thr_Down
-            break;
-
-        case Thr_Down:
-
-            if (LZ_double_motor_ctrl(LZ_PUSH_POS))
-            {
-                reload_state = Thr_Push;
-            }
-
-            break;
-
-        case Thr_Push:
-            P_dart();
-            if (current_time - reload_state_start_time >= SERVO_DELAY_MS)
-            {
-                energy_state = Thr_Wait;
-                reload_state = reload_non_task;
-                reload_state_start_time = current_time;
-            }
-            break;
-
-        case Thr_Up:
-            LZMotor_set_pos_param(LEFT_MOTO, LR_HOME, 5);
-            LZMotor_set_pos_param(RIGHT_MOTO, LR_HOME, 5);
-            if (fabs(GET_LZ_MOTOR_ANGLE(LEFT_MOTO) - LR_HOME) < MOTOR_ANGLE_TOLERANCE &&
-                fabs(GET_LZ_MOTOR_ANGLE(RIGHT_MOTO) - LR_HOME) < MOTOR_ANGLE_TOLERANCE)
-            {
-                energy_state = Fou_Shoot_Ready;
-                reload_state = reload_non_task;
-                reload_state_start_time = current_time;
-            }
-            break;
+            reload_fsm.state     = Fir_up;
+            energy_fsm.keep_pos  = cnt_angle;
+            energy_fsm.state     = Keep_position;
         }
+        break;
 
-        //--------------------------------------------------//
-        //-----------------------火控-----------------------//
-        //-------------------------------------------------//
-        switch (fire_state)
+    case Sec_Shoot_Ready:
+        if (position_ready(Sec_P))
+            fire_fsm.state = Sec_Fire;
+        break;
+
+    case Sec_Back:
+        if (back() && reset_state == 0 && shoot_state == 1)
+            energy_fsm.state = Thr_Ready;
+        break;
+
+    case Thr_Ready: // 第三次储能，等待左侧装填完成
+        if (position_ready(PULL_P) && reload_fsm.state == Sec_Half_Down_Finish)
         {
-
-        case Fir_Fire:
-            if (reset_state == 0 && shoot_state == 1)
-            {
-                fire_state_start_time = current_time;
-            }
-            else
-            {
-                // 拨杆会通过 Trigger_down() 触发发射
-                if (current_time - fire_state_start_time >= TRIGGER_DELAY_MS) // 等待板机发射完成
-                {
-                    fire_state = Stop_Fire;
-                    energy_state = Fir_Back;
-                    reload_state = Fir_Half_Down; // 开火完成，开始半降准备
-                    fire_state_start_time = current_time;
-                }
-            }
-            break;
-
-        case Sec_Fire:
-            if (reset_state == 0 && shoot_state == 1)
-            {
-                fire_state_start_time = current_time;
-            }
-            else
-            {
-                // 拨杆会通过 Trigger_down() 触发发射
-                if (current_time - fire_state_start_time >= TRIGGER_DELAY_MS) // 等待板机发射完成
-                {
-                    fire_state = Stop_Fire;
-                    energy_state = Sec_Back;
-                    reload_state = L_Go; // 第三次装填开始并行
-                    fire_state_start_time = current_time;
-                }
-            }
-            break;
-
-        case Thr_Fire:
-            if (reset_state == 0 && shoot_state == 1)
-            {
-                fire_state_start_time = current_time;
-            }
-            else
-            {
-                // 拨杆会通过 Trigger_down() 触发发射
-                if (current_time - fire_state_start_time >= TRIGGER_DELAY_MS) // 等待板机发射完成
-                {
-                    fire_state = Stop_Fire;
-                    energy_state = Thr_Back;
-                    reload_state = R_Go; // 第四次装填开始并行
-                    fire_state_start_time = current_time;
-                }
-            }
-            break;
-
-        case Fou_Fire:
-            if (reset_state == 0 && shoot_state == 1)
-            {
-                fire_state_start_time = current_time;
-            }
-            else
-            {
-                // 拨杆会通过 Trigger_down() 触发发射
-                if (current_time - fire_state_start_time >= TRIGGER_DELAY_MS) // 等待板机发射完成
-                {
-                    fire_state = Stop_Fire;
-                    energy_state = Fou_Back;
-                    fire_state_start_time = current_time;
-                }
-            }
-            break;
+            reload_fsm.state     = Sec_Down;
+            energy_fsm.keep_pos  = cnt_angle;
+            energy_fsm.state     = Keep_position;
         }
+        break;
+
+    case Sec_Wait:
+        if (position_ready(WAIT_P) && reload_fsm.state == reload_non_task)
+        {
+            reload_fsm.state     = Sec_Up;
+            energy_fsm.keep_pos  = cnt_angle;
+            energy_fsm.state     = Keep_position;
+        }
+        break;
+
+    case Thr_Shoot_Ready:
+        if (position_ready(Thr_P))
+            fire_fsm.state = Thr_Fire;
+        break;
+
+    case Thr_Back:
+        if (back() && reset_state == 0 && shoot_state == 1)
+            energy_fsm.state = Fou_Ready;
+        break;
+
+    case Fou_Ready: // 第四次储能，等待右侧装填完成
+        if (position_ready(PULL_P) && reload_fsm.state == Thr_Half_Down_Finish)
+        {
+            reload_fsm.state     = Thr_Down;
+            energy_fsm.keep_pos  = cnt_angle;
+            energy_fsm.state     = Keep_position;
+        }
+        break;
+
+    case Thr_Wait:
+        if (position_ready(WAIT_P) && reload_fsm.state == reload_non_task)
+        {
+            reload_fsm.state     = Thr_Up;
+            energy_fsm.keep_pos  = cnt_angle;
+            energy_fsm.state     = Keep_position;
+        }
+        break;
+
+    case Fou_Shoot_Ready:
+        if (position_ready(Fou_P))
+            fire_fsm.state = Fou_Fire;
+        break;
+
+    case Fou_Back:
+        if (back() && reset_state == 0 && shoot_state == 1)
+        {
+            energy_fsm.keep_pos = cnt_angle;
+            energy_fsm.state    = Keep_position;
+        }
+        break;
+
+    case Keep_position:
+        position_ready(energy_fsm.keep_pos);
+        break;
+
+    case energy_non_task:
+        break;
+
+    default:
+        // 异常状态，回到空闲
+        energy_fsm.state = FLING_IDLE;
+        break;
+    }
+
+    /* ================== 装填状态机 ================== */
+    switch (reload_fsm.state)
+    {
+    case reload_non_task:
+        break;
+
+    /* --- 第一次装填 --- */
+    case Fir_Half_Down:
+        if (LZ_double_motor_ctrl(LZ_HALF_DOWN_POS))
+            reload_fsm.state = Fir_Half_Down_Finish;
+        break;
+
+    case Fir_Half_Down_Finish:
+        /* 等待储能状态机汇合 (Sec_Ready 检测此状态) */
+        break;
+
+    case Fir_Down:
+        if (LZ_double_motor_ctrl(LZ_PUSH_POS))
+            reload_fsm.state = Fir_Push;
+        break;
+
+    case Fir_Push:
+        P_dart();
+        if (current_time - reload_fsm.start_time >= SERVO_DELAY_MS)
+        {
+            energy_fsm.state      = Fir_Wait;
+            reload_fsm.state      = reload_non_task;
+            reload_fsm.start_time = current_time;
+        }
+        break;
+
+    case Fir_up:
+        if (LZ_double_motor_ctrl(LZ_HOME))
+        {
+            if (current_time - reload_fsm.start_time >= TRIGGER_DELAY_MS)
+            {
+                energy_fsm.state      = Sec_Shoot_Ready;
+                reload_fsm.state      = reload_non_task;
+                reload_fsm.start_time = current_time;
+            }
+        }
+        break;
+
+    /* --- 左侧取镖 (第二发装填) --- */
+    case L_Go:
+        P_dart();
+        LZMotor_set_pos_param(MID_MOTO, MID_SLIDE_LEFT, 5);
+        if (fabs(GET_LZ_MOTOR_ANGLE(MID_MOTO) - MID_SLIDE_LEFT) < MOTOR_ANGLE_TOLERANCE)
+        {
+            reload_fsm.state      = L_Down;
+            reload_fsm.start_time = current_time;
+        }
+        break;
+
+    case L_Down:
+        if (LZ_double_motor_ctrl(LZ_CATCH_POS))
+            reload_fsm.state = L_Catch;
+        break;
+
+    case L_Catch:
+        C_dart();
+        if (current_time - reload_fsm.start_time >= DOWN_AGAIN_MS)
+        {
+            reload_fsm.state      = L_Down_Again;
+            reload_fsm.start_time = current_time;
+        }
+        break;
+
+    case L_Down_Again:
+        if (LZ_double_motor_ctrl(LZ_CLAMP_POS))
+            reload_fsm.state = L_Up;
+        break;
+
+    case L_Up:
+        if (LZ_double_motor_ctrl(LZ_HOME))
+            reload_fsm.state = L_Back;
+        break;
+
+    case L_Back:
+        LZMotor_set_pos_param(MID_MOTO, MID_HOME, 5);
+        if (fabs(GET_LZ_MOTOR_ANGLE(MID_MOTO) - MID_HOME) < MOTOR_ANGLE_TOLERANCE)
+        {
+            reload_fsm.state      = Sec_Half_Down;
+            reload_fsm.start_time = current_time;
+        }
+        break;
+
+    /* --- 第二次装填 --- */
+    case Sec_Half_Down:
+        if (LZ_double_motor_ctrl(LZ_HALF_DOWN_POS))
+            reload_fsm.state = Sec_Half_Down_Finish;
+        break;
+
+    case Sec_Half_Down_Finish:
+        /* 等待储能状态机汇合 (Thr_Ready 检测此状态) */
+        break;
+
+    case Sec_Down:
+        if (LZ_double_motor_ctrl(LZ_PUSH_POS))
+            reload_fsm.state = Sec_Push;
+        break;
+
+    case Sec_Push:
+        P_dart();
+        if (current_time - reload_fsm.start_time >= SERVO_DELAY_MS)
+        {
+            energy_fsm.state      = Sec_Wait;
+            reload_fsm.state      = reload_non_task;
+            reload_fsm.start_time = current_time;
+        }
+        break;
+
+    case Sec_Up:
+        if (LZ_double_motor_ctrl(LZ_HOME))
+        {
+            energy_fsm.state = Thr_Shoot_Ready;
+            reload_fsm.state = reload_non_task;
+        }
+        break;
+
+    /* --- 右侧取镖 (第三发装填) --- */
+    case R_Go:
+        P_dart();
+        LZMotor_set_pos_param(MID_MOTO, MID_SLIDE_RIGHT, 5);
+        if (fabs(GET_LZ_MOTOR_ANGLE(MID_MOTO) - MID_SLIDE_RIGHT) < MOTOR_ANGLE_TOLERANCE)
+        {
+            reload_fsm.state      = R_Down;
+            reload_fsm.start_time = current_time;
+        }
+        break;
+
+    case R_Down:
+        if (LZ_double_motor_ctrl(LZ_CATCH_POS))
+            reload_fsm.state = R_Catch;
+        break;
+
+    case R_Catch:
+        C_dart();
+        if (current_time - reload_fsm.start_time >= DOWN_AGAIN_MS)
+        {
+            reload_fsm.state      = R_Down_Again;
+            reload_fsm.start_time = current_time;
+        }
+        break;
+
+    case R_Down_Again:
+        if (LZ_double_motor_ctrl(LZ_CLAMP_POS))
+            reload_fsm.state = R_Up;
+        break;
+
+    case R_Up:
+        if (LZ_double_motor_ctrl(LZ_HOME))
+            reload_fsm.state = R_Back;
+        break;
+
+    case R_Back:
+        LZMotor_set_pos_param(MID_MOTO, MID_HOME, 5);
+        if (fabs(GET_LZ_MOTOR_ANGLE(MID_MOTO) - MID_HOME) < MOTOR_ANGLE_TOLERANCE)
+        {
+            reload_fsm.state      = Thr_Half_Down;
+            reload_fsm.start_time = current_time;
+        }
+        break;
+
+    /* --- 第三次装填 --- */
+    case Thr_Half_Down:
+        if (LZ_double_motor_ctrl(LZ_HALF_DOWN_POS))
+            reload_fsm.state = Thr_Half_Down_Finish;
+        break;
+
+    case Thr_Half_Down_Finish:
+        /* 等待储能状态机汇合 (Fou_Ready 检测此状态) */
+        break;
+
+    case Thr_Down:
+        if (LZ_double_motor_ctrl(LZ_PUSH_POS))
+            reload_fsm.state = Thr_Push;
+        break;
+
+    case Thr_Push:
+        P_dart();
+        if (current_time - reload_fsm.start_time >= SERVO_DELAY_MS)
+        {
+            energy_fsm.state      = Thr_Wait;
+            reload_fsm.state      = reload_non_task;
+            reload_fsm.start_time = current_time;
+        }
+        break;
+
+    case Thr_Up:
+        LZMotor_set_pos_param(LEFT_MOTO, LR_HOME, 5);
+        LZMotor_set_pos_param(RIGHT_MOTO, LR_HOME, 5);
+        if (fabs(GET_LZ_MOTOR_ANGLE(LEFT_MOTO) - LR_HOME) < MOTOR_ANGLE_TOLERANCE &&
+            fabs(GET_LZ_MOTOR_ANGLE(RIGHT_MOTO) - LR_HOME) < MOTOR_ANGLE_TOLERANCE)
+        {
+            energy_fsm.state      = Fou_Shoot_Ready;
+            reload_fsm.state      = reload_non_task;
+            reload_fsm.start_time = current_time;
+        }
+        break;
+
+    default:
+        break;
+    }
+
+    /* ================== 火控状态机 ================== */
+    switch (fire_fsm.state)
+    {
+    case Stop_Fire:
+        break;
+
+    case Fir_Fire:
+        fire_round_handler(Fir_Back, Fir_Half_Down);
+        break;
+
+    case Sec_Fire:
+        fire_round_handler(Sec_Back, L_Go);
+        break;
+
+    case Thr_Fire:
+        fire_round_handler(Thr_Back, R_Go);
+        break;
+
+    case Fou_Fire:
+        fire_round_handler(Fou_Back, reload_non_task);
+        break;
+
+    default:
+        fire_fsm.state = Stop_Fire;
+        break;
     }
 }
 
-#endif
+#endif /* test_p == 1 */
+
+/* ==================== 夹爪调试模式 ==================== */
 
 #if (test_p == 0)
 
-double cnt_angle = 0.0000;
-static int zero = 0;
-
-void test(void)
-{
-
-    //    set_servo_angle(PWM_PIN_1, 0);
-    //    set_servo_angle(PWM_PIN_2, 90);
-    //    set_servo_angle(PWM_PIN_3, 180);
-    //    set_servo_angle(PWM_PIN_4, 180);
-    if (zero == 0)
-    {
-        find_zero();
-        if (DM_Motor_data[0][0].motor_data.para.pos >= -0.01 && DM_Motor_data[0][0].motor_data.para.pos <= 0.01 && DM_Motor_data[0][0].motor_data.para.pos != 0.0000000)
-        {
-
-            zero = 1;
-        }
-    }
-    else if (zero == 1) // 多圈处理
-    {
-        // 定义状态变量（需在循环外定义或使用static）
-        static double last_raw_pos = 0.0000;
-        static int32_t round_count = 0;
-
-        // 1. 获取当前原始位置
-        float current_raw_pos = DM_Motor_data[0][0].motor_data.para.pos;
-
-        // 2. 检测数值跳变
-        // 判定阈值通常取全量程的一半（即 12.5）
-        if (current_raw_pos - last_raw_pos < -12.5f)
-        {
-            // 正向转过临界点：数值从 12.5 跳到 -12.5
-            round_count++;
-        }
-        else if (current_raw_pos - last_raw_pos > 12.5f)
-        {
-            // 反向转过临界点：数值从 -12.5 跳到 12.5
-            round_count--;
-        }
-
-        // 3. 计算多圈累计角度
-        // 累计角度 = 圈数 * 全量程 + 当前原始位置
-        cnt_angle = (float)round_count * 25.00000 + current_raw_pos;
-
-        // 4. 更新上一时刻位置，用于下次计算
-        last_raw_pos = current_raw_pos;
-    }
-
-    if (zero == 1)
-    {
-
-        p_ctrl(6.25, 2, 0.03);
-    }
-}
+void test(void) {}
+void Auto_mode(void) {}
 
 #endif
 
 #if (test_p == 2)
 
-double cnt_angle = 0.0000;
-
-void Auto_mode(void)
-{
-}
+void Auto_mode(void) {}
 
 void test(void)
 {
-
     set_servo_angle(PWM_PIN_1, 88);
     set_servo_angle(PWM_PIN_2, 70);
 }
 
 #endif
-
-// case Fir_Ready: // 第一次储能
-
-//     position_ready(PULL_P, Fir_Shoot_Ready);
-
-//     break;
-
-// case Fir_Shoot_Ready:
-
-//     position_ready(BIG_P, Fir_Fire);
-
-//     break;
-
-// case Fir_Fire: // 等待外部拨杆扣下扳机
-
-//     if (reset_state == 0 && shoot_state == 1)
-//     {
-//         fling_state_start_time = current_time;
-//     }
-//     else
-//     {
-//         // 拨杆会通过 Trigger_down() 触发发射
-//         if (current_time - fling_state_start_time >= TRIGGER_DELAY_MS) // 等待板机发射完成
-//         {
-//             fling_state = Fir_Back;
-//             fling_state_start_time = current_time;
-//         }
-//     }
-//     break;
-
-// case Fir_Back:
-
-//     back(Sec_Ready); // 第一次回勾
-
-//     break;
-
-// case Sec_Ready: // 等待放镖
-
-//     position_ready(PULL_P, Fir_Down);
-
-//     break;
-
-// case Fir_Down: // 第一次灵足电机放下
-
-//     LZ_double_motor_ctrl(5.3f, Fir_Push);
-
-//     break;
-
-// case Fir_Push: // 第一次夹爪松开
-
-//     P_dart();
-//     if (current_time - fling_state_start_time >= SERVO_DELAY_MS)
-//     {
-//         fling_state = Fir_Wait;
-//         fling_state_start_time = current_time;
-//     }
-//     break;
-
-// case Fir_Wait:
-
-//     position_ready(WAIT_P, Fir_up); // 储能电机下拉，等待灵足电机上升
-
-//     break;
-// case Fir_up: // 第一次灵足电机上升
-
-//     LZ_double_motor_ctrl(0.0f, Sec_Shoot_Ready);
-
-//     break;
-
-// case Sec_Shoot_Ready:
-
-//     position_ready(BIG_P, Sec_Fire);
-
-//     break;
-
-// case Sec_Fire: // 第二次开火
-
-//     if (reset_state == 0 && shoot_state == 1)
-//     {
-//         fling_state_start_time = current_time;
-//     }
-//     else
-//     {
-//         // 拨杆会通过 Trigger_down() 触发发射
-//         if (current_time - fling_state_start_time >= TRIGGER_DELAY_MS) // 等待板机发射完成
-//         {
-//             fling_state = Sec_Back;
-//             fling_state_start_time = current_time;
-//         }
-//     }
-
-//     break;
-
-// case Sec_Back: // 第二次回勾
-
-//     back(Thr_Ready);
-
-//     break;
-
-// case Thr_Ready: // 第三次储能
-
-//     position_ready(PULL_P, L_Go);
-
-//     break;
-
-// case L_Go: // X轴左移
-//     P_dart();
-//     LZMotor_set_pos_param(MID_MOTO, -3.2f, 5);
-//     if (fabs(GET_LZ_MOTOR_ANGLE(MID_MOTO) - (-3.2f)) < MOTOR_ANGLE_TOLERANCE)
-//     {
-//         fling_state = L_Down;
-//         fling_state_start_time = current_time;
-//     }
-//     break;
-
-// case L_Down: // 左侧下降
-
-//     LZ_double_motor_ctrl(1.0f, L_Catch);
-
-//     break;
-
-// case L_Catch: // 左侧夹镖
-//     C_dart();
-//     if (current_time - fling_state_start_time >= DOWN_AGAIN_MS)
-//     {
-//         fling_state = L_Down_Again;
-//         fling_state_start_time = current_time;
-//     }
-//     break;
-
-// case L_Down_Again:
-
-//     LZ_double_motor_ctrl(2.4f, L_Up);
-
-//     break;
-
-// case L_Up: // 左侧上升
-
-//     LZ_double_motor_ctrl(0.0f, L_Back);
-
-//     break;
-
-// case L_Back: // X轴左侧回归
-//     LZMotor_set_pos_param(MID_MOTO, 1.0, 5);
-//     if (fabs(GET_LZ_MOTOR_ANGLE(MID_MOTO) - (1.0f)) < MOTOR_ANGLE_TOLERANCE)
-//     {
-//         fling_state = Sec_Down;
-//         fling_state_start_time = current_time;
-//     }
-//     break;
-
-// case Sec_Down: // 第二次下降
-
-//     LZ_double_motor_ctrl(5.3f, Sec_Push);
-
-//     break;
-
-// case Sec_Push:
-
-//     P_dart();
-//     if (current_time - fling_state_start_time >= SERVO_DELAY_MS)
-//     {
-//         fling_state = Sec_Wait;
-//         fling_state_start_time = current_time;
-//     }
-//     break;
-
-// case Sec_Wait:
-
-//     position_ready(WAIT_P, Sec_Up); // 储能电机下拉，等待灵足电机上升
-
-//     break;
-
-// case Sec_Up:
-
-//     LZ_double_motor_ctrl(0.0f, Thr_Shoot_Ready);
-
-//     break;
-
-// case Thr_Shoot_Ready:
-
-//     position_ready(BIG_P, Thr_Fire);
-
-//     break;
-
-// case Thr_Fire: // 第三次开火
-
-//     if (reset_state == 0 && shoot_state == 1)
-//     {
-//         fling_state_start_time = current_time;
-//     }
-//     else
-//     {
-//         if (current_time - fling_state_start_time >= TRIGGER_DELAY_MS) // 等待板机发射完成
-//         {
-//             fling_state = Thr_Back;
-//             fling_state_start_time = current_time;
-//         }
-//     }
-
-//     break;
-
-// case Thr_Back:
-
-//     back(Fou_Ready);
-
-//     break;
-
-// case Fou_Ready:
-
-//     position_ready(PULL_P, R_Go);
-
-//     break;
-
-// case R_Go:
-
-//     P_dart();
-//     LZMotor_set_pos_param(MID_MOTO, 5.2f, 5);
-//     if (fabs(GET_LZ_MOTOR_ANGLE(MID_MOTO) - (5.2f)) < MOTOR_ANGLE_TOLERANCE)
-//     {
-//         fling_state = R_Down;
-//         fling_state_start_time = current_time;
-//     }
-//     break;
-
-// case R_Down:
-
-//     LZ_double_motor_ctrl(1.0f, R_Catch);
-
-//     break;
-
-// case R_Catch:
-
-//     C_dart();
-//     if (current_time - fling_state_start_time >= DOWN_AGAIN_MS)
-//     {
-//         fling_state = R_Down_Again;
-//         fling_state_start_time = current_time;
-//     }
-//     break;
-
-// case R_Down_Again:
-
-//     LZ_double_motor_ctrl(2.4f, R_Up);
-
-//     break;
-
-// case R_Up:
-
-//     LZ_double_motor_ctrl(0.0f, R_Back);
-
-//     break;
-
-// case R_Back:
-
-//     LZMotor_set_pos_param(MID_MOTO, 1.0f, 5);
-
-//     if (fabs(GET_LZ_MOTOR_ANGLE(MID_MOTO) - (1.0f)) < MOTOR_ANGLE_TOLERANCE)
-//     {
-//         fling_state = Thr_Down;
-//         fling_state_start_time = current_time;
-//     }
-//     break;
-
-// case Thr_Down:
-
-//     LZ_double_motor_ctrl(5.3f, Thr_Push);
-
-//     break;
-
-// case Thr_Push:
-
-//     P_dart();
-//     if (current_time - fling_state_start_time >= SERVO_DELAY_MS)
-//     {
-//         fling_state = Thr_Wait;
-//         fling_state_start_time = current_time;
-//     }
-//     break;
-
-// case Thr_Wait:
-
-//     position_ready(WAIT_P, Thr_Up); // 储能电机下拉，等待灵足电机上升
-
-//     break;
-
-// case Thr_Up:
-
-//     LZMotor_set_pos_param(LEFT_MOTO, 1.0f, 5);
-//     LZMotor_set_pos_param(RIGHT_MOTO, 1.0f, 5); // 右侧电机角度取反
-//     if (fabs(GET_LZ_MOTOR_ANGLE(LEFT_MOTO) - (1.0f)) < MOTOR_ANGLE_TOLERANCE &&
-//         fabs(GET_LZ_MOTOR_ANGLE(RIGHT_MOTO) - (1.0f)) < MOTOR_ANGLE_TOLERANCE)
-//     { // 角度判断也取反
-//         fling_state = Fou_Shoot_Ready;
-//         fling_state_start_time = current_time;
-//     }
-
-//     break;
-
-// case Fou_Shoot_Ready:
-
-//     position_ready(BIG_P, Fou_Fire);
-
-//     break;
-
-// case Fou_Fire:
-
-//     if (reset_state == 0 && shoot_state == 1)
-//     {
-//         fling_state_start_time = current_time;
-//     }
-//     else
-//     {
-//         // 拨杆会通过 Trigger_down() 触发发射
-//         if (current_time - fling_state_start_time >= TRIGGER_DELAY_MS) // 等待板机发射完成
-//         {
-//             fling_state = Fou_Back;
-//             fling_state_start_time = current_time;
-//         }
-//     }
-
-//     break;
-
-// case Fou_Back:
-
-//     back(Non_Task);
-
-//     break;

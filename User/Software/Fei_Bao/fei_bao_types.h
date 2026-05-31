@@ -4,7 +4,9 @@
 
 #include "cmsis_os2.h"
 
-/* 飞豹状态机枚举类型 */
+/* 飞镖状态机枚举类型 */
+
+
 // typedef enum
 // {
 //     FLING_IDLE,
@@ -152,5 +154,26 @@ typedef enum
     Stop_Fire, // 停止开火
 
 } FirState_t;
+
+/* ===================== FSM 上下文结构体 ===================== */
+
+typedef struct
+{
+    Energy_State state;
+    uint32_t     start_time;
+    double       keep_pos; // Keep_position 状态时保持的电机位置
+} EnergyFSM_t;
+
+typedef struct
+{
+    ReloadState_t state;
+    uint32_t      start_time;
+} ReloadFSM_t;
+
+typedef struct
+{
+    FirState_t state;
+    uint32_t   start_time;
+} FireFSM_t;
 
 #endif /* FEI_BAO_TYPES_H */

@@ -4,24 +4,6 @@
 
 #define MIN_ERROR 1 // 自瞄允许偏差
 
-// YAW轴限位
-#define YAW_ANGLE_MAX     10000   // YAW轴正向限位 (编码器值)
-#define YAW_ANGLE_MIN    -20000   // YAW轴反向限位 (编码器值)
-#define YAW_LIMIT_SPEED   500     // YAW轴限位回退速度
-
-// 遥控器
-#define SW_POS_UP         1807    // 拨杆上位值
-#define SW_THRESHOLD      1024.0f // 拨杆阈值
-
-// 视觉跟踪
-#define VISION_MIN_SPD    230     // 最低跟踪速度
-#define VISION_MAX_SPD    400     // 最高跟踪速度
-#define VISION_ERR_SPD    50      // 误差步进速度
-
-// DM电机多圈参数
-#define DM_FULL_RANGE     25.0f   // DM电机单圈全量程
-#define DM_HALF_RANGE     12.5f   // DM电机半量程 (跳变检测阈值)
-
 
 
 void Trigger_down(void)
@@ -163,7 +145,7 @@ uint8_t position_ready(double target)
       return 1; // 到位
     }
   }
-  energy_fsm.start_time = current_time;
+  energy_state_start_time = current_time;
   sten_moto_spctrl(speed);
   return 0; // 未到位
 }
@@ -182,7 +164,7 @@ uint8_t LZ_double_motor_ctrl(float pos)
   {
     return 1; // 到位
   }
-  reload_fsm.start_time = current_time;
+  reload_state_start_time = current_time;
   return 0; // 未到位
 }
 
@@ -225,90 +207,6 @@ void vision(int MIN_SPEED, int MAX_SPEED, int ERROR_SPEED)
     else
     {
         Shoot_set_yaw_root_velocity(speed);
-    }
-}
-
-/**
- * @brief 复位三个状态机到初始状态
- */
-void reset_all_fsm(void)
-{
-    energy_fsm.state      = FLING_IDLE;
-    energy_fsm.start_time = current_time;
-    reload_fsm.state      = reload_non_task;
-    reload_fsm.start_time = current_time;
-    fire_fsm.state        = Stop_Fire;
-    fire_fsm.start_time   = current_time;
-}
-
-/**
- * @brief YAW轴电机控制 (手动/自动模式共用)
- *        S1上位=视觉跟踪，S4高位=遥控器+限位保护，其他=直通遥控器
- */
-void yaw_control(void)
-{
-    if (RC_data.rc.s[1] == SW_POS_UP)
-    {
-        vision(VISION_MIN_SPD, VISION_MAX_SPD, VISION_ERR_SPD);
-    }
-    else if (RC_data.rc.s[4] >= SW_THRESHOLD)
-    {
-        int32_t yaw_angle = DJIMotor_data[1][0].angle_cnt;
-        if (yaw_angle <= YAW_ANGLE_MAX && yaw_angle >= YAW_ANGLE_MIN)
-            Shoot_set_yaw_root_velocity(RC_data.rc.ch[3]);
-        else if (yaw_angle >= YAW_ANGLE_MAX)
-            Shoot_set_yaw_root_velocity(-YAW_LIMIT_SPEED);
-        else
-            Shoot_set_yaw_root_velocity(YAW_LIMIT_SPEED);
-    }
-    else
-    {
-        Shoot_set_yaw_root_velocity(RC_data.rc.ch[3]);
-    }
-}
-
-/**
- * @brief DM电机多圈角度累计 (跳变检测法)
- */
-void multi_turn_update(void)
-{
-    static double last_raw_pos = 0.0;
-    static int32_t round_count = 0;
-
-    float raw = DM_Motor_data[0][0].motor_data.para.pos;
-
-    if (raw - last_raw_pos < -DM_HALF_RANGE)
-        round_count++;
-    else if (raw - last_raw_pos > DM_HALF_RANGE)
-        round_count--;
-
-    cnt_angle = (double)round_count * DM_FULL_RANGE + raw;
-    last_raw_pos = raw;
-}
-
-/**
- * @brief 火控通用处理：等待扳机扣下 → 延时 → 转移到下一组状态
- * @param next_energy  开火完成后储能状态机的下一个状态
- * @param next_reload  开火完成后装填状态机的下一个状态 (reload_non_task 表示不改变)
- */
-void fire_round_handler(Energy_State next_energy, ReloadState_t next_reload)
-{
-    if (reset_state == 0 && shoot_state == 1)
-    {
-        // 扳机未扣下，持续刷新时间基准
-        fire_fsm.start_time = current_time;
-    }
-    else
-    {
-        // 扳机已扣下，等待延时完成
-        if (current_time - fire_fsm.start_time >= TRIGGER_DELAY_MS)
-        {
-            fire_fsm.state   = Stop_Fire;
-            energy_fsm.state = next_energy;
-            if (next_reload != reload_non_task)
-                reload_fsm.state = next_reload;
-            fire_fsm.start_time = current_time;
-        }
     }
 }
 
