@@ -36,6 +36,7 @@ BUILD_DIR = build
 # source
 # 公共包含路径
 COMMON_SOURCES = \
+	$(wildcard User/System/*.c) \
     $(wildcard User/Algorithm/*.c) \
     $(wildcard User/BSP/*.c) \
     $(wildcard User/Hardware/*.c) \
@@ -175,6 +176,7 @@ C_DEFS =  \
 
 
 COMMON_INCLUDES = \
+-IUser/System \
 -IUser/Algorithm \
 -IUser/Algorithm/Include \
 -IUser/BSP \

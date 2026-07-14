@@ -32,8 +32,9 @@
 #define PARAM_DOWN_AGAIN_MS 200     // 夹镖后再次下压延时 (ms)
 #define PARAM_TRIGGER_DELAY_MS 300 // 板机扣动等待延时 (ms)
 
+//DM10010L控制
 #define PARAM_PULL_POSITION -6.7000 // 放镖位置 (rad)
-#define PARAM_WAIT_POSITION -7.4000 // 等待装填上升位置，储能电机下拉 (rad)
+#define PARAM_WAIT_POSITION -7.0000 // 等待装填上升位置，储能电机下拉 (rad)
 
 #define PARAM_FIR_SHOOT_POSITION -6.7000 // 第一发发射位置 (rad)
 #define PARAM_SEC_SHOOT_POSITION -6.7000 // 第二发发射位置 (rad)
@@ -44,7 +45,7 @@
 #define PARAM_STEN_TOLERANCE 0.0100     // 储能电机到位容差 (rad)
 #define PARAM_LZ_ANGLE_TOLERANCE 0.1000 // 灵足电机到位容差 (rad)
 
-#define PARAM_BACK_POSITION        1.5    // 储能电机回勾位置 (rad)
+#define PARAM_BACK_POSITION        0.32    // 储能电机回勾位置 (rad)
 
 // 灵足双轴运动参数 (LZ_double_motor_ctrl 的 pos 偏移值)
 #define PARAM_LZ_HOME_OFFSET       0.0f  // 归原位偏移

@@ -10,8 +10,10 @@
 /* ==================== 常量定义 ==================== */
 
 // DM电机找零参数
-#define DM_ZERO_LOW       0.95f   // DM电机找零位置下限
-#define DM_ZERO_HIGH      1.05f   // DM电机找零位置上限
+#define L_DM_ZERO_LOW       0.95f   // DM电机找零位置下限
+#define L_DM_ZERO_HIGH      1.05f   // DM电机找零位置上限
+#define H_DM_ZERO_LOW       0.23f   // DM电机找零位置下限
+#define H_DM_ZERO_HIGH      0.30f   // DM电机找零位置上限
 
 // 遥控器
 #define STICK_DEADZONE    200     // 摇杆死区
@@ -135,7 +137,7 @@ void Auto_mode(void)
     {
         find_zero();
         float pos = DM_Motor_data[0][0].motor_data.para.pos;
-        if (pos >= DM_ZERO_LOW && pos <= DM_ZERO_HIGH && pos != 0.0f)
+        if (pos >= H_DM_ZERO_LOW && pos <= H_DM_ZERO_HIGH && pos != 0.0f)
         {
             energy_fsm.state = FLING_IDLE;
             find_zero();

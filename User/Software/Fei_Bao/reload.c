@@ -67,8 +67,8 @@ void sten_moto_ctrl(float angle, float val)
 
 void sten_moto_spctrl(float val)
 {
-  // 拉弓保护：多圈累计角度超过 -7.5 时禁止继续负向运动
-  if (cnt_angle < -7.5 && val < 0)
+  // 拉弓保护：多圈累计角度超过 -5.5 时禁止继续负向运动
+  if (cnt_angle < -7.1 && val < 0)
     val = 0;
 
   spd_ctrl(&hfdcan1, STEN_MOTO, val);
@@ -91,11 +91,11 @@ void sten_moto_spctrl(float val)
 void find_zero(void)
 {
   float pos = DM_Motor_data[0][0].motor_data.para.pos;
-  if (pos >= 0.95 && pos <= 1.05)
+  if (pos >= 0.23 && pos <= 0.30)
   {
     sten_moto_spctrl(0);
   }
-  else if (pos < 0.95)
+  else if (pos < 0.23)
   {
     sten_moto_spctrl(1);
   }
